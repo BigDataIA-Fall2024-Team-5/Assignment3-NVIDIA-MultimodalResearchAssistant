@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "assignment3-nvidia-multimodalresearchassistant"
+version = "0.1.0"
+description = ""
+authors = ["dharun-karthick-ramaraj <dharun.ramaraj@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11"
+bs4 = "^0.0.2"
+requests = "^2.32.3"
+selenium = "^4.25.0"
+python-dotenv = "^1.0.1"
+boto3 = "^1.35.45"
+pandas = "^2.2.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
