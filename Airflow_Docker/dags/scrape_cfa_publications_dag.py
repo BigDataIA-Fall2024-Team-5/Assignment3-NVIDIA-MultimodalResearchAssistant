@@ -145,7 +145,7 @@ def save_and_upload_csv(ti, aws_access_key, aws_secret_key, aws_region, s3_bucke
 # Define the DAG
 default_args = {
     'owner': 'airflow',
-    'start_date': datetime(2024, 10, 1),
+    'start_date': datetime(2024, 10, 21),
     'retries': 1,
 }
 
