@@ -82,6 +82,7 @@ RUN pip install --no-cache-dir \
     selenium==4.25.0 \
     beautifulsoup4==4.12.3 \
     pandas==2.2.3 \
-    snowflake-connector-python==3.12.2
+    snowflake-connector-python==3.12.2 \
+    pymupdf==1.24.12
 # Expose port 8080 (Airflow UI)
 EXPOSE 8080
