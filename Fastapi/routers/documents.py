@@ -4,17 +4,6 @@ from config import get_snowflake_connection
 import boto3
 import logging
 from urllib.parse import urlparse
-from dotenv import load_dotenv
-import os
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Fetch required environment variables
-AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-AWS_REGION = os.getenv('AWS_REGION')
-S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME')
 
 router = APIRouter()
 
@@ -22,9 +11,9 @@ router = APIRouter()
 def generate_s3_presigned_url(url):
     s3_client = boto3.client(
         's3',
-        aws_access_key_id=AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-        region_name=AWS_REGION
+        aws_access_key_id='AKIA42PHHPNDY4KC46A4',
+        aws_secret_access_key='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',
+        region_name='us-east-2'
     )
     try:
         # Extract the S3 key (path) from the full URL
@@ -34,7 +23,7 @@ def generate_s3_presigned_url(url):
             logging.debug(f"Generating pre-signed URL for key: {key}")
             response = s3_client.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': S3_BUCKET_NAME, 'Key': key},
+                Params={'Bucket': 'publications-data-store', 'Key': key},
                 ExpiresIn=3600  # URL valid for 1 hour
             )
             return response

@@ -1,17 +1,12 @@
 import snowflake.connector
 import logging
-from dotenv import load_dotenv
-import os
-
-# Load environment variables from .env file
-load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def get_snowflake_connection():
     """
-    Establishes a connection to Snowflake using credentials from environment variables.
+    Establishes a connection to Snowflake using direct credentials.
 
     Returns:
         conn: A Snowflake connection object.
@@ -20,14 +15,14 @@ def get_snowflake_connection():
         Exception: If there is an error while connecting to Snowflake.
     """
     try:
-        # Fetch credentials from environment variables
-        user = os.getenv("SNOWFLAKE_USER")
-        password = os.getenv("SNOWFLAKE_PASSWORD")
-        account = os.getenv("SNOWFLAKE_ACCOUNT")
-        warehouse = os.getenv("SNOWFLAKE_WAREHOUSE")
-        role = os.getenv("SNOWFLAKE_ROLE")
-        database = os.getenv("SNOWFLAKE_DATABASE")
-        schema = os.getenv("SNOWFLAKE_SCHEMA")
+        # Directly pass the credentials (replace these with actual values)
+        user = "DHARUNRAMARAJ"
+        password = "password@DAMG7245"
+        account = "kvmqrcg-ol33191"
+        warehouse = "WH_PUBLICATIONS_ETL"
+        role = "ACCOUNTADMIN"
+        database = "DB_CFA_PUBLICATIONS"
+        schema = "CFA_PUBLICATIONS"
 
         # Log the connection details (don't log sensitive info like password)
         logging.debug(f"Connecting to Snowflake with account: {account}, user: {user}, database: {database}, schema: {schema}")
