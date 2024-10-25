@@ -62,7 +62,15 @@ def describe_image(image_content):
     }
 
     response = requests.post(invoke_url, headers=headers, json=payload)
-    return response.json()["choices"][0]['message']['content']
+    
+    if response.status_code != 200:
+        raise ValueError(f"Failed to describe image. Status code: {response.status_code}, Response: {response.text}")
+
+    response_json = response.json()
+    if "choices" not in response_json or not response_json["choices"]:
+        raise ValueError(f"Unexpected response format: {response_json}")
+    
+    return response_json["choices"][0]['message']['content']
 
 def process_graph(image_content):
     """Process a graph image and generate a description using NVIDIA API."""

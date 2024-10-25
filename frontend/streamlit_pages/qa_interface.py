@@ -17,7 +17,7 @@ set_environment_variables()
 def initialize_settings():
     Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
     Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
-    Settings.text_splitter = SentenceSplitter(chunk_size=650)
+    Settings.text_splitter = SentenceSplitter(chunk_size=800)
 
 # Create index from documents
 def create_index(documents):
