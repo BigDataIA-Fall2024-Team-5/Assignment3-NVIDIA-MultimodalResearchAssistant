@@ -21,6 +21,16 @@ st-clickable-images = "^0.0.3"
 pymupdf = "^1.24.12"
 pdfplumber = "^0.11.4"
 openai = "^1.52.2"
+llama-index-core = "^0.11.20"
+llama-index-readers-file = "^0.2.2"
+llama-index-llms-nvidia = "^0.2.6"
+llama-index-embeddings-nvidia = "^0.2.4"
+llama-index-vector-stores-milvus = "^0.2.7"
+pymilvus = "^2.4.8"
+python-multipart = "^0.0.12"
+torch = "^2.5.0"
+tensorflow = "^2.18.0"
+openpyxl = "^3.1.5"
 
 
 [build-system]

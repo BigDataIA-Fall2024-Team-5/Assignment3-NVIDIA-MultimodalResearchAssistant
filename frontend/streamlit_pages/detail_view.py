@@ -1,6 +1,7 @@
+#streamlit_pages/detail_view
 import streamlit as st
 import requests
-from streamlit_pages.utils import fetch_image_url, fetch_pdf_url, fetch_summary  # New function to fetch summary
+from streamlit_pages.utils import fetch_image_url, fetch_pdf_url, fetch_summary 
 
 def show_detail_view(API_BASE_URL):
     """Displays detailed information of a selected publication."""
@@ -37,6 +38,12 @@ def show_detail_view(API_BASE_URL):
             # Display Created Date if available
             if selected_pub.get("CREATED_DATE"):
                 st.write(f"**Created On:** {selected_pub['CREATED_DATE']}")
+            
+            if st.button("Take me to Q/A Interface"):
+                # Save the selected publication's PDF URL in session state
+                st.session_state["selected_pdf_url"] = pdf_url
+                st.session_state["page"] = "qa_interface"
+                st.rerun()
 
         st.markdown("---")
 
