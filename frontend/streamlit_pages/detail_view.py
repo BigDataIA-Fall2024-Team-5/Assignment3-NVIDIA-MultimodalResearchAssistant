@@ -34,6 +34,10 @@ def show_detail_view(API_BASE_URL):
             st.write(f"**Date:** {selected_pub['DATE']}")
             st.write(f"**Description:** {selected_pub['BRIEF_SUMMARY']}")
 
+            # Display Created Date if available
+            if selected_pub.get("CREATED_DATE"):
+                st.write(f"**Created On:** {selected_pub['CREATED_DATE']}")
+
         st.markdown("---")
 
         # Section for additional summary information
@@ -57,7 +61,7 @@ def show_detail_view(API_BASE_URL):
         if summary_content == "generate":
             st.warning("Summary not found. Click 'Refresh' to generate one.")
         elif summary_content:
-            st.write(f"*Last modified on: {summary_timestamp}*")
+            st.write(f"*Last updated on: {summary_timestamp}*")
             st.write(summary_content)
         else:
             st.warning("Summary not available. Click 'Refresh' to generate one.")
@@ -81,6 +85,15 @@ def show_detail_view(API_BASE_URL):
                         st.warning("Summary generated but no content received.")
                 else:
                     st.error(f"Failed to generate the summary. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+
+        st.markdown("---")
+
+        # Section for Research Notes
+        st.markdown("## Research Notes")
+        if selected_pub.get("RESEARCH_NOTES"):
+            st.write(selected_pub["RESEARCH_NOTES"])
+        else:
+            st.info("No research notes available.")
 
         st.markdown("---")
 

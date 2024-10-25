@@ -53,9 +53,12 @@ def snowflake_setup():
         DATE VARCHAR(20),
         AUTHOR VARCHAR(500),
         IMAGE_LINK VARCHAR(300),
-        PDF_LINK VARCHAR(300)
+        PDF_LINK VARCHAR(300),
+        RESEARCH_NOTES VARCHAR(1500),
+        CREATED_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
     """
+
 
     try:
         # Execute each statement separately

@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import snowflake_router, s3_router, summarization_router
+from fast_api.routers import snowflake_router, s3_router, summarization_router
 from dotenv import load_dotenv
 import os
 

@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from typing import List
 from pydantic import BaseModel
 import snowflake.connector
+from datetime import datetime
 import os
 
 router = APIRouter(
@@ -9,7 +10,6 @@ router = APIRouter(
     tags=["Snowflake"]
 )
 
-# Define a Publication model with attributes matching the database column names in all caps
 class Publication(BaseModel):
     ID: int
     TITLE: str
@@ -18,6 +18,9 @@ class Publication(BaseModel):
     AUTHOR: str
     IMAGE_LINK: str = None
     PDF_LINK: str
+    RESEARCH_NOTES: str = None
+    CREATED_DATE: datetime = None  # Changed to datetime
+
 
 # Snowflake connection setup (fetch credentials from environment variables)
 def get_snowflake_connection():
@@ -51,6 +54,7 @@ async def get_publications_from_snowflake():
         
         publications = []
         for row in cursor:
+            created_date = row[8].strftime("%Y-%m-%d %H:%M:%S") if row[8] else None  # Convert datetime to string
             publications.append(Publication(
                 ID=row[0],
                 TITLE=row[1],
@@ -58,7 +62,9 @@ async def get_publications_from_snowflake():
                 DATE=row[3],
                 AUTHOR=row[4],
                 IMAGE_LINK=row[5],
-                PDF_LINK=row[6]
+                PDF_LINK=row[6],
+                RESEARCH_NOTES=row[7],
+                CREATED_DATE=created_date  # Use the formatted string
             ))
         cursor.close()
         conn.close()

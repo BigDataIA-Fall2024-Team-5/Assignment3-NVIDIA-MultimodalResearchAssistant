@@ -52,17 +52,20 @@ def load_data_into_snowflake():
                          '{row['date']}' AS DATE,
                          '{row['authors']}' AS AUTHOR,
                          '{row['cover_path']}' AS IMAGE_LINK,
-                         '{row['publication_path']}' AS PDF_LINK) AS source
+                         '{row['publication_path']}' AS PDF_LINK,
+                         '' AS RESEARCH_NOTES,  -- Set RESEARCH_NOTES as an empty string
+                         CURRENT_TIMESTAMP AS CREATED_DATE) AS source
             ON target.TITLE = source.TITLE
                AND target.AUTHOR = source.AUTHOR
                AND target.DATE = source.DATE
             WHEN MATCHED THEN
               UPDATE SET target.BRIEF_SUMMARY = source.BRIEF_SUMMARY,
                          target.IMAGE_LINK = source.IMAGE_LINK,
-                         target.PDF_LINK = source.PDF_LINK
+                         target.PDF_LINK = source.PDF_LINK,
+                         target.RESEARCH_NOTES = source.RESEARCH_NOTES
             WHEN NOT MATCHED THEN
-              INSERT (TITLE, BRIEF_SUMMARY, DATE, AUTHOR, IMAGE_LINK, PDF_LINK)
-              VALUES (source.TITLE, source.BRIEF_SUMMARY, source.DATE, source.AUTHOR, source.IMAGE_LINK, source.PDF_LINK);
+              INSERT (TITLE, BRIEF_SUMMARY, DATE, AUTHOR, IMAGE_LINK, PDF_LINK, RESEARCH_NOTES, CREATED_DATE)
+              VALUES (source.TITLE, source.BRIEF_SUMMARY, source.DATE, source.AUTHOR, source.IMAGE_LINK, source.PDF_LINK, source.RESEARCH_NOTES, source.CREATED_DATE);
             """
             cursor.execute(merge_query)
         print(f"Data loaded successfully into table '{table_name}'.")
@@ -73,6 +76,7 @@ def load_data_into_snowflake():
         cursor.close()
         conn.close()
         print("Snowflake connection closed.")
+
 
 default_args = {
     'owner': 'airflow',
