@@ -77,3 +77,34 @@ async def fetch_pdf_from_s3(file_key: str):
         raise HTTPException(status_code=403, detail="Credentials not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching PDF: {str(e)}")
+    
+@router.get("/fetch-summary/{file_key:path}")
+async def fetch_summary_from_s3(file_key: str):
+    """
+    Fetch a pre-signed URL for a summary text file from S3 using the file key.
+    """
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+
+        # Construct the key correctly based on the folder structure in S3
+        # Here, file_key should already include the entire key including folders (e.g., silver/publications/beyond-active-and-passive/beyond-active-and-passive.txt)
+        try:
+            s3_client.head_object(Bucket=bucket_name, Key=file_key)
+        except ClientError as e:
+            if e.response['Error']['Code'] == "404":
+                raise HTTPException(status_code=404, detail="Summary file not found in S3 bucket")
+            else:
+                raise HTTPException(status_code=500, detail="Error checking summary file existence")
+
+        # Generate a pre-signed URL to access the summary file if it exists
+        summary_url = s3_client.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': bucket_name, 'Key': file_key},
+            ExpiresIn=3600  # URL expiration time in seconds
+        )
+        return {"summary_url": summary_url}
+    except NoCredentialsError:
+        raise HTTPException(status_code=403, detail="Credentials not available")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching summary: {str(e)}")
+

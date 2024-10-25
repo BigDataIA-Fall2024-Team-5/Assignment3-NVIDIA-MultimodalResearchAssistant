@@ -1,5 +1,3 @@
-# routers/snowflake_router.py
-
 from fastapi import APIRouter, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -11,15 +9,15 @@ router = APIRouter(
     tags=["Snowflake"]
 )
 
-# Define a Publication model (same as in publication_router)
+# Define a Publication model with attributes matching the database column names in all caps
 class Publication(BaseModel):
-    id: int
-    title: str
-    description: str
-    date: str
-    author: str
-    cover_image_link: str = None
-    pdf_link: str
+    ID: int
+    TITLE: str
+    BRIEF_SUMMARY: str
+    DATE: str
+    AUTHOR: str
+    IMAGE_LINK: str = None
+    PDF_LINK: str
 
 # Snowflake connection setup (fetch credentials from environment variables)
 def get_snowflake_connection():
@@ -54,13 +52,13 @@ async def get_publications_from_snowflake():
         publications = []
         for row in cursor:
             publications.append(Publication(
-                id=row[0],
-                title=row[1],
-                description=row[2],
-                date=row[3],
-                author=row[4],
-                cover_image_link=row[5],
-                pdf_link=row[6]
+                ID=row[0],
+                TITLE=row[1],
+                BRIEF_SUMMARY=row[2],
+                DATE=row[3],
+                AUTHOR=row[4],
+                IMAGE_LINK=row[5],
+                PDF_LINK=row[6]
             ))
         cursor.close()
         conn.close()

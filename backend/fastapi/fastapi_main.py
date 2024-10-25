@@ -2,7 +2,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import snowflake_router, s3_router
+from routers import snowflake_router, s3_router, summarization_router
 from dotenv import load_dotenv
 import os
 
@@ -29,6 +29,7 @@ app.add_middleware(
 # Include the routers
 app.include_router(snowflake_router.router)
 app.include_router(s3_router.router)
+app.include_router(summarization_router.router)
 
 # Root endpoint to check if the server is running
 @app.get("/")

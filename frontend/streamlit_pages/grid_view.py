@@ -1,5 +1,3 @@
-# streamlit_pages/grid_view.py
-
 import streamlit as st
 from streamlit_pages.utils import fetch_publications, fetch_image_url
 import os
@@ -31,7 +29,7 @@ def show_grid_view(API_BASE_URL):
 
             with col:
                 # Extract the file key including the folder path
-                file_key = "/".join(pub['cover_image_link'].split('/')[-3:]) if pub.get('cover_image_link') else None
+                file_key = "/".join(pub['IMAGE_LINK'].split('/')[-3:]) if pub.get('IMAGE_LINK') else None
                 image_url = fetch_image_url(API_BASE_URL, file_key) if file_key else placeholder_image_path
 
                 # Verify if the fetched image URL is None or not working
@@ -41,19 +39,19 @@ def show_grid_view(API_BASE_URL):
                 # Display the image with a fixed size and make it clickable
                 if image_url == placeholder_image_path:
                     # Display placeholder image if actual image not available
-                    col.image(image_url, use_column_width=False, width=150, caption=pub['title'])
+                    col.image(image_url, use_column_width=False, width=150, caption=pub['TITLE'])
                 else:
                     # Create a clickable image using an anchor tag in Markdown
                     image_html = f"""
-                    <a href="/?selected_pub_id={pub['id']}">
-                        <img src="{image_url}" alt="{pub['title']}" style="width:150px; height:200px; border-radius: 8px; margin-bottom: 5px;">
+                    <a href="/?selected_pub_id={pub['ID']}">
+                        <img src="{image_url}" alt="{pub['TITLE']}" style="width:150px; height:200px; border-radius: 8px; margin-bottom: 5px;">
                     </a>
                     """
                     # Display the clickable image using Markdown
                     col.markdown(image_html, unsafe_allow_html=True)
 
                 # Display the publication title as a clickable button
-                if col.button(pub['title'], key=f"btn_{pub['id']}"):
+                if col.button(pub['TITLE'], key=f"btn_{pub['ID']}"):
                     # When the button is clicked, update the session state and navigate to the detail view
                     st.session_state["selected_pub"] = pub
                     st.session_state["page"] = "detail_view"
@@ -67,7 +65,7 @@ def show_grid_view(API_BASE_URL):
 
     if selected_pub_id:
         # Validate the selected publication based on the ID in the query parameters
-        selected_pub = next((pub for pub in publications if str(pub['id']) == selected_pub_id), None)
+        selected_pub = next((pub for pub in publications if str(pub['ID']) == selected_pub_id), None)
         if selected_pub:
             # Update session state for the selected publication
             st.session_state["selected_pub"] = selected_pub
