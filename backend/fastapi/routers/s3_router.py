@@ -81,20 +81,27 @@ async def fetch_pdf_from_s3(file_key: str):
 @router.get("/fetch-summary/{file_key:path}")
 async def fetch_summary_from_s3(file_key: str):
     """
-    Fetch a pre-signed URL for a summary text file from S3 using the file key.
+    Fetch a pre-signed URL for a summary text file from S3 using the file key, and return the last modified timestamp.
     """
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
 
-        # Construct the key correctly based on the folder structure in S3
-        # Here, file_key should already include the entire key including folders (e.g., silver/publications/beyond-active-and-passive/beyond-active-and-passive.txt)
+        # Check if the file exists in S3 by trying to get its metadata and last modified timestamp
         try:
-            s3_client.head_object(Bucket=bucket_name, Key=file_key)
+            head_response = s3_client.head_object(Bucket=bucket_name, Key=file_key)
         except ClientError as e:
             if e.response['Error']['Code'] == "404":
                 raise HTTPException(status_code=404, detail="Summary file not found in S3 bucket")
             else:
                 raise HTTPException(status_code=500, detail="Error checking summary file existence")
+
+        # Extract the last modified timestamp from the response
+        last_modified = head_response.get("LastModified")
+        if last_modified:
+            # Convert the last modified time to a standard string format
+            last_modified_str = last_modified.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        else:
+            last_modified_str = None
 
         # Generate a pre-signed URL to access the summary file if it exists
         summary_url = s3_client.generate_presigned_url(
@@ -102,9 +109,15 @@ async def fetch_summary_from_s3(file_key: str):
             Params={'Bucket': bucket_name, 'Key': file_key},
             ExpiresIn=3600  # URL expiration time in seconds
         )
-        return {"summary_url": summary_url}
+        
+        return {
+            "summary_url": summary_url,
+            "last_modified": last_modified_str
+        }
+
     except NoCredentialsError:
         raise HTTPException(status_code=403, detail="Credentials not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching summary: {str(e)}")
+
 

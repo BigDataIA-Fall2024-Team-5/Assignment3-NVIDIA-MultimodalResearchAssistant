@@ -19,22 +19,20 @@ def show_detail_view(API_BASE_URL):
                 if image_url:
                     st.image(image_url, caption=selected_pub['TITLE'], use_column_width=True)
 
+            # Fetch and display the pre-signed URL for downloading the PDF below the image
+            if selected_pub.get('PDF_LINK'):
+                pdf_key = "/".join(selected_pub['PDF_LINK'].split('/')[-3:])  # Extract the key from the link
+                pdf_url = fetch_pdf_url(API_BASE_URL, pdf_key)  # Fetch the pre-signed URL for the PDF
+
+                if pdf_url:
+                    st.markdown(f"[📄 Download PDF]({pdf_url})", unsafe_allow_html=True)
+
         with col2:
             # Display publication details with proper formatting
             st.markdown(f"### {selected_pub['TITLE']}")  # Title as a heading
             st.write(f"**Author:** {selected_pub['AUTHOR']}")
             st.write(f"**Date:** {selected_pub['DATE']}")
             st.write(f"**Description:** {selected_pub['BRIEF_SUMMARY']}")
-
-        st.markdown("---")
-
-        # Fetch and display the pre-signed URL for downloading the PDF
-        if selected_pub.get('PDF_LINK'):
-            pdf_key = "/".join(selected_pub['PDF_LINK'].split('/')[-3:])  # Extract the key from the link
-            pdf_url = fetch_pdf_url(API_BASE_URL, pdf_key)  # Fetch the pre-signed URL for the PDF
-
-            if pdf_url:
-                st.markdown(f"[📄 Download PDF]({pdf_url})", unsafe_allow_html=True)
 
         st.markdown("---")
 
@@ -54,13 +52,12 @@ def show_detail_view(API_BASE_URL):
             st.error(f"Error forming summary key: {str(e)}")
             return
 
-        # Fetch the existing summary
         summary_content, summary_timestamp = fetch_summary(API_BASE_URL, summary_key)
 
         if summary_content == "generate":
             st.warning("Summary not found. Click 'Refresh' to generate one.")
         elif summary_content:
-            st.write(f"*Generated on: {summary_timestamp}*")
+            st.write(f"*Last modified on: {summary_timestamp}*")
             st.write(summary_content)
         else:
             st.warning("Summary not available. Click 'Refresh' to generate one.")
@@ -69,6 +66,7 @@ def show_detail_view(API_BASE_URL):
         if st.button("🔄 Refresh Summary"):
             with st.spinner("Generating summary..."):
                 payload = {"pdf_link": selected_pub["PDF_LINK"]}
+
                 response = requests.post(
                     f"{API_BASE_URL}/summarization/generate-summary",
                     json=payload

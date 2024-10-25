@@ -37,7 +37,7 @@ async def generate_summary(request: SummaryRequest):
     - Checks for an existing summary in `silver/publication_summary/`.
     - If not found, fetches extracted text from `silver/publications/`.
     - Generates a summary using OpenAI with instructions to be concise.
-    - Saves the summary to S3.
+    - Saves or overwrites the summary in S3.
     """
     try:
         # Extract the base file name from the PDF link to derive paths
@@ -46,14 +46,7 @@ async def generate_summary(request: SummaryRequest):
         publication_key = f"silver/publications/{base_file_name}/{base_file_name}.txt"
         bucket_name = os.getenv("S3_BUCKET_NAME")
 
-        # Step 1: Check if summary already exists in `silver/publication_summary/`
-        try:
-            existing_summary = get_s3_file_content(bucket_name, summary_key)
-            return {"summary": existing_summary, "message": "Summary already exists and fetched successfully!"}
-        except Exception:
-            pass  # If the summary doesn't exist, continue to generate it
-
-        # Step 2: Fetch the extracted publication text from `silver/publications/`
+        # Step 1: Fetch the extracted publication text from `silver/publications/`
         publication_text = get_s3_file_content(bucket_name, publication_key)
 
         # Adjusted: Truncate the text to fit within 5,000 tokens (approximately 25,000 characters)
@@ -86,7 +79,7 @@ async def generate_summary(request: SummaryRequest):
             # Extract the summary text from the response
             summary = "".join(choice.message.content for choice in completion.choices)
 
-            # Step 3: Save the summary to S3 in the `silver/publication_summary/` path
+            # Step 3: Overwrite the summary in S3 in the `silver/publication_summary/` path
             s3_client.put_object(Bucket=bucket_name, Key=summary_key, Body=summary.encode('utf-8'))
 
             return {"summary": summary, "message": "Summary generated and saved successfully!"}
@@ -95,3 +88,4 @@ async def generate_summary(request: SummaryRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in summary generation: {str(e)}")
+

@@ -1,6 +1,8 @@
 import requests
 import streamlit as st
 from datetime import datetime
+import pytz
+
 
 def fetch_publications(API_BASE_URL):
     """Fetches a list of publications from the FastAPI server."""
@@ -44,12 +46,14 @@ def fetch_pdf_url(API_BASE_URL, file_key):
 def fetch_summary(API_BASE_URL, summary_key):
     """Fetches the summary from the S3 bucket using a pre-signed URL."""
     try:
-        # Request to the backend to fetch the pre-signed URL for the summary file
+        # Request to the backend to fetch the pre-signed URL and last modified time for the summary file
         response = requests.get(f"{API_BASE_URL}/s3/fetch-summary/{summary_key}")
         
         if response.status_code == 200:
-            # Extract the pre-signed URL from the backend response
+            # Extract the pre-signed URL and last modified time from the backend response
             summary_url = response.json().get("summary_url")
+            last_modified = response.json().get("last_modified", None)
+
             if summary_url:
                 # Fetch the actual content of the summary using the pre-signed URL
                 summary_response = requests.get(summary_url)
@@ -57,24 +61,28 @@ def fetch_summary(API_BASE_URL, summary_key):
                 if summary_response.status_code == 200:
                     # Convert the response content to text, assuming it's a plain text summary
                     summary_content = summary_response.text
-                    # Optionally, extract the timestamp from the response headers if needed
-                    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                    return summary_content, timestamp
+                    
+                    # If there is a last modified time, convert it to the target timezone
+                    if last_modified:
+                        # Parse the UTC time
+                        utc_time = datetime.strptime(last_modified, "%Y-%m-%dT%H:%M:%S.%fZ")
+                        # Convert to target timezone (e.g., America/New_York for UTC-04:00)
+                        target_timezone = pytz.timezone("America/New_York")  # Change to your desired timezone
+                        last_modified_local = utc_time.replace(tzinfo=pytz.utc).astimezone(target_timezone)
+                        # Format the local time
+                        last_modified = last_modified_local.strftime("%B %d, %Y, %H:%M:%S %p (%Z)")
+                    
+                    return summary_content, last_modified
                 else:
-                    st.error(f"Failed to retrieve summary content. HTTP status: {summary_response.status_code}")
-                    return None, None
+                    return None, None  # Return None without logging error messages
             else:
-                st.error("Pre-signed URL for the summary not found in the response.")
-                return None, None
-        elif response.status_code == 500:
-            # If there is a 500 error (file not found), return a signal to generate the summary
-            return "generate", None
+                return None, None  # Return None if the pre-signed URL is not found
+        elif response.status_code == 404:
+            # If a 404 error is returned, the summary file does not exist
+            return "generate", None  # Indicate that a new summary needs to be generated
         else:
-            st.error(f"Failed to fetch pre-signed URL for summary. HTTP status: {response.status_code}")
-            return None, None
+            return None, None  # Return None without logging error messages
     except requests.exceptions.RequestException as e:
-        st.error(f"Network error fetching summary: {str(e)}")
-        return None, None
+        return None, None  # Return None without logging error messages
     except Exception as e:
-        st.error(f"Unexpected error fetching summary: {str(e)}")
-        return None, None
+        return None, None  # Return None without logging error messages
