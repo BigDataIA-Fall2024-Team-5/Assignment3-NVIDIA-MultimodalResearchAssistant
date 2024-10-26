@@ -6,7 +6,7 @@ authors = ["dharun-karthick-ramaraj <dharun.ramaraj@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.11"
+python = "^3.11"
 bs4 = "^0.0.2"
 requests = "^2.32.3"
 selenium = "^4.25.0"
