@@ -50,7 +50,7 @@ async def get_publications_from_snowflake():
         cursor = conn.cursor()
 
         # Use fully qualified table name: {database}.{schema}.{table}
-        cursor.execute("SELECT * FROM DB_CFA_PUBLICATIONS.CFA_PUBLICATIONS.PUBLICATION_LIST ORDER BY DATE DESC")
+        cursor.execute("SELECT TOP 5 * FROM DB_CFA_PUBLICATIONS.CFA_PUBLICATIONS.PUBLICATION_LIST ORDER BY DATE DESC")
         
         publications = []
         for row in cursor:
