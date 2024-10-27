@@ -24,20 +24,31 @@ def show_qa_interface(API_BASE_URL):
     if selected_pdf_url:
         st.markdown(f"[📄 View Selected PDF]({selected_pdf_url})", unsafe_allow_html=True)
 
-    # Step 1: Send the PDF link to the backend for processing and index creation
-    if "index" not in st.session_state:
-        with st.spinner("Processing and indexing PDF..."):
+    # Step 1: Check if the index exists, otherwise process and index the PDF
+    if "current_pdf_id" not in st.session_state or st.session_state["current_pdf_id"] != pdf_id:
+        st.session_state["current_pdf_id"] = pdf_id
+        st.session_state["index"] = False
+
+    if not st.session_state["index"]:
+        with st.spinner("Checking if index already exists..."):
             try:
-                response = requests.post(f"{API_BASE_URL}/rag/process-pdf", json={"pdf_link": selected_pdf_url, "pdf_id": pdf_id})
-                if response.status_code == 200:
+                response = requests.get(f"{API_BASE_URL}/rag/check-index", params={"pdf_id": pdf_id})
+                if response.status_code == 200 and response.json().get("index_exists"):
                     st.session_state['index'] = True
                     st.session_state['history'] = []
-                    st.success("PDF processed and index created successfully!")
+                    st.success("Index already exists! You can start querying.")
                 else:
-                    st.error(f"Failed to process the PDF. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
-                    return
+                    with st.spinner("Processing and indexing PDF..."):
+                        response = requests.post(f"{API_BASE_URL}/rag/process-pdf", json={"pdf_link": selected_pdf_url, "pdf_id": pdf_id})
+                        if response.status_code == 200:
+                            st.session_state['index'] = True
+                            st.session_state['history'] = []
+                            st.success("PDF processed and index created successfully!")
+                        else:
+                            st.error(f"Failed to process the PDF. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+                            return
             except Exception as e:
-                st.error(f"Error processing the PDF: {str(e)}")
+                st.error(f"Error during processing or index check: {str(e)}")
                 return
 
     # Add a button to reload the Q/A interface (force reprocessing)
