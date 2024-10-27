@@ -19,7 +19,7 @@ def main():
     elif st.session_state["page"] == "detail_view":
         detail_view.show_detail_view(API_BASE_URL)
     elif st.session_state["page"] == "qa_interface":
-        qa_interface.show_qa_interface()
+        qa_interface.show_qa_interface(API_BASE_URL)
 
 if __name__ == "__main__":
     main()

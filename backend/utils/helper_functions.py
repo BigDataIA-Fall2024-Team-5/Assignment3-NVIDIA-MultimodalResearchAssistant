@@ -1,13 +1,13 @@
 # utils/helper_functions.py
-
 import os
-import base64
+import shutil
 import fitz
+import base64
 from io import BytesIO
 from PIL import Image
-from dotenv import load_dotenv
 import requests
-from llama_index.llms.nvidia import NVIDIA  # Import NVIDIA properly
+from llama_index.llms.nvidia import NVIDIA
+from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
@@ -17,10 +17,10 @@ def set_environment_variables():
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise ValueError("NVIDIA API Key is not set. Please check your .env file or environment variables.")
-    os.environ["NVIDIA_API_KEY"] = api_key  # Optionally set in os.environ if needed for subprocesses
+    os.environ["NVIDIA_API_KEY"] = api_key
 
 def get_b64_image_from_content(image_content):
-    """Convert image content to base64 encoded string."""
+    """Convert image content to a base64 encoded string."""
     img = Image.open(BytesIO(image_content))
     if img.mode != 'RGB':
         img = img.convert('RGB')
@@ -38,7 +38,7 @@ def describe_image(image_content):
     image_b64 = get_b64_image_from_content(image_content)
     invoke_url = "https://ai.api.nvidia.com/v1/vlm/nvidia/neva-22b"
     api_key = os.getenv("NVIDIA_API_KEY")
-    
+
     if not api_key:
         raise ValueError("NVIDIA API Key is not set. Please set the NVIDIA_API_KEY environment variable.")
 
@@ -62,7 +62,22 @@ def describe_image(image_content):
     }
 
     response = requests.post(invoke_url, headers=headers, json=payload)
-    return response.json()["choices"][0]['message']['content']
+    if response.status_code != 200:
+        raise ValueError(f"Failed to communicate with NVIDIA API: {response.status_code} - {response.text}")
+
+    response_data = response.json()
+    if "choices" not in response_data or not response_data["choices"]:
+        raise ValueError("No description generated. 'choices' key missing in API response.")
+    
+    return response_data["choices"][0]['message']['content']
+
+def clear_cache_directory(cache_dir):
+    """Delete all files and folders inside a specified cache directory."""
+    if os.path.exists(cache_dir):
+        # Remove all files and folders inside the directory
+        shutil.rmtree(cache_dir)
+        # Recreate the directory to be empty
+        os.makedirs(cache_dir, exist_ok=True)
 
 def process_graph(image_content):
     """Process a graph image and generate a description using NVIDIA API."""
@@ -76,7 +91,7 @@ def process_graph_deplot(image_content):
     invoke_url = "https://ai.api.nvidia.com/v1/vlm/google/deplot"
     image_b64 = get_b64_image_from_content(image_content)
     api_key = os.getenv("NVIDIA_API_KEY")
-    
+
     if not api_key:
         raise ValueError("NVIDIA API Key is not set. Please set the NVIDIA_API_KEY environment variable.")
 
@@ -99,7 +114,14 @@ def process_graph_deplot(image_content):
     }
 
     response = requests.post(invoke_url, headers=headers, json=payload)
-    return response.json()["choices"][0]['message']['content']
+    if response.status_code != 200:
+        raise ValueError(f"Failed to communicate with NVIDIA Deplot API: {response.status_code} - {response.text}")
+
+    response_data = response.json()
+    if "choices" not in response_data or not response_data["choices"]:
+        raise ValueError("No data table generated. 'choices' key missing in API response.")
+
+    return response_data["choices"][0]['message']['content']
 
 def extract_text_around_item(text_blocks, bbox, page_height, threshold_percentage=0.1):
     """Extract text above and below a given bounding box on a page."""

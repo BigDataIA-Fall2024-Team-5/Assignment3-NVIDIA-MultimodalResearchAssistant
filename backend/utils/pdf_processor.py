@@ -8,6 +8,16 @@ from utils.helper_functions import (
     is_graph, process_graph
 )
 
+# Define a hidden .cache directory for storing temporary and vectorstore files
+CACHE_DIR = os.path.join(os.getcwd(), ".cache")
+VECTORSTORE_DIR = os.path.join(CACHE_DIR, "vectorstore")
+TMP_DIR = os.path.join(CACHE_DIR, "tmp")
+
+# Create .cache directory if it doesn't exist
+os.makedirs(CACHE_DIR, exist_ok=True)
+os.makedirs(VECTORSTORE_DIR, exist_ok=True)
+os.makedirs(TMP_DIR, exist_ok=True)
+
 def get_pdf_documents(pdf_file):
     """Process a PDF file and extract text, tables, and images."""
     all_pdf_documents = []
@@ -37,12 +47,7 @@ def get_pdf_documents(pdf_file):
                 bbox = {"x1": heading_block[0], "y1": heading_block[1], "x2": heading_block[2], "x3": heading_block[3]}
                 text_doc = Document(
                     text=f"{heading_block[4]}\n{content}",
-                    metadata={
-                        **bbox,
-                        "type": "text",
-                        "page_num": i,
-                        "source": f"{pdf_file.name[:-4]}-page{i}-block{text_block_ctr}"
-                    },
+                    metadata={**bbox, "type": "text", "page_num": i, "source": f"{pdf_file.name[:-4]}-page{i}-block{text_block_ctr}"},
                     id_=f"{pdf_file.name[:-4]}-page{i}-block{text_block_ctr}"
                 )
                 all_pdf_documents.append(text_doc)
@@ -59,7 +64,7 @@ def parse_all_tables(filename, page, pagenum, text_blocks, ongoing_tables):
         for tab in tables:
             if not tab.header.external:
                 pandas_df = tab.to_pandas()
-                tablerefdir = os.path.join(os.getcwd(), "vectorstore/table_references")
+                tablerefdir = os.path.join(VECTORSTORE_DIR, "table_references")
                 os.makedirs(tablerefdir, exist_ok=True)
                 df_xlsx_path = os.path.join(tablerefdir, f"table{len(table_docs)+1}-page{pagenum}.xlsx")
                 pandas_df.to_excel(df_xlsx_path)
@@ -108,7 +113,7 @@ def parse_all_images(filename, page, pagenum, text_blocks):
 
         extracted_image = page.parent.extract_image(xref)
         image_data = extracted_image["image"]
-        imgrefpath = os.path.join(os.getcwd(), "vectorstore/image_references")
+        imgrefpath = os.path.join(VECTORSTORE_DIR, "image_references")
         os.makedirs(imgrefpath, exist_ok=True)
         image_path = os.path.join(imgrefpath, f"image{xref}-page{pagenum}.png")
         with open(image_path, "wb") as img_file:
