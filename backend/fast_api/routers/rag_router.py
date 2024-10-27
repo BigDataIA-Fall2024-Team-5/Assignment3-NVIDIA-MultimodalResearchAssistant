@@ -1,5 +1,3 @@
-# routers/rag_router.py
-
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from pinecone import Pinecone, ServerlessSpec
@@ -47,6 +45,11 @@ def initialize_settings():
     Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
     Settings.text_splitter = SentenceSplitter(chunk_size=650)
 
+def index_exists(pdf_id):
+    """Check if an index with the given pdf_id exists in Pinecone."""
+    index_name = f"pdf-index-{pdf_id}"
+    return index_name in pc.list_indexes().names()
+
 def create_index(documents, pdf_id):
     index_name = f"pdf-index-{pdf_id}"
 
@@ -73,6 +76,10 @@ async def process_pdf_link(data: PDFLink):
     """Process a given PDF link, create an index, and return success message."""
     try:
         pdf_id = str(data.pdf_id)
+
+        # Check if the index already exists
+        if index_exists(pdf_id):
+            return {"message": "Index already exists. No processing required."}
 
         # Clear the temporary cache directory before processing
         clear_cache_directory(TMP_DIR)
@@ -119,13 +126,13 @@ async def process_pdf_link(data: PDFLink):
 
 @router.post("/reload-pdf")
 async def reload_pdf(data: PDFLink):
-    """Force reprocessing of a given PDF link, create a fresh index, and return success message."""
+    """Force reprocessing of a given PDF link, create a fresh index, and return success message.""" 
     try:
         pdf_id = data.pdf_id
 
         # Delete existing index if it exists
         index_name = f"pdf-index-{pdf_id}"
-        if index_name in pc.list_indexes().names():
+        if index_exists(pdf_id):
             pc.delete_index(index_name)
 
         # Clear the temporary cache directory before processing
@@ -158,7 +165,7 @@ async def query_index(data: QueryRequest):
         initialize_settings()
         index_name = f"pdf-index-{data.pdf_id}"
 
-        if index_name not in pc.list_indexes().names():
+        if not index_exists(data.pdf_id):
             raise HTTPException(status_code=404, detail="Index not found for the provided PDF ID.")
 
         vector_store = PineconeVectorStore(index_name=index_name)
@@ -178,4 +185,3 @@ async def query_index(data: QueryRequest):
         return {"answer": answer}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
-
