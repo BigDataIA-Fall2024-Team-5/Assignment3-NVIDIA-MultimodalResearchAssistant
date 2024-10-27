@@ -9,16 +9,21 @@ from dotenv import load_dotenv
 import requests
 from llama_index.llms.nvidia import NVIDIA  # Import NVIDIA properly
 
-# Load environment variables from .env file
-load_dotenv()
 
 def set_environment_variables():
+    # Load environment variables from .env file
+    load_dotenv()
     """Set necessary environment variables."""
     api_key = os.getenv("NVIDIA_API_KEY")
     if not api_key:
         raise ValueError("NVIDIA API Key is not set. Please check your .env file or environment variables.")
     os.environ["NVIDIA_API_KEY"] = api_key  # Optionally set in os.environ if needed for subprocesses
 
+    pinecone_api_key = os.getenv("PINECONE_API_KEY")
+    if not pinecone_api_key :
+        raise ValueError("Pinecone API Key . Please check your .env file.")
+    os.environ["PINECONE_API_KEY"] = pinecone_api_key
+   
 def get_b64_image_from_content(image_content):
     """Convert image content to base64 encoded string."""
     img = Image.open(BytesIO(image_content))

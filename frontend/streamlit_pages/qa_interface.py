@@ -1,17 +1,24 @@
-
+import re
+from pinecone import Pinecone
 import os
 import requests
 import streamlit as st
+from io import BytesIO
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.vector_stores.milvus import MilvusVectorStore
 from llama_index.embeddings.nvidia import NVIDIAEmbedding
 from llama_index.llms.nvidia import NVIDIA
 from utils.pdf_processor import get_pdf_documents
 from utils.helper_functions import set_environment_variables
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+from pinecone import ServerlessSpec
+import hashlib
 
 # Initialize environment variables
 set_environment_variables()
+
+# Initialize Pinecone
+pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
 
 # Initialize settings
 def initialize_settings():
@@ -20,25 +27,52 @@ def initialize_settings():
     Settings.text_splitter = SentenceSplitter(chunk_size=650)
 
 # Create index from documents
-def create_index(documents):
-    vector_store = MilvusVectorStore(uri="./milvus_demo.db", dim=1024, overwrite=True)  # For CPU-only vector store
+def create_index(documents, pdf_id):
+    index_name = f"pdf-index-{re.sub(r'[^a-z0-9-]', '-', pdf_id.lower())}"
+    index_name = re.sub(r'^[^a-z]', 'a', index_name)  # Ensure it starts with a letter
+    index_name = index_name[:62]  # Limit to 62 characters (Pinecone's limit is 63)
+    
+    # Check if the index already exists, if not, create it
+    if index_name not in pc.list_indexes().names():
+        pc.create_index(
+            name=index_name,
+            dimension=1024,
+            metric="cosine",
+            spec=ServerlessSpec(
+                cloud="aws",
+                region="us-east-1"  # GCP region for free tier
+            )
+        )
+    # Initialize the Pinecone vector store
+    vector_store = PineconeVectorStore(index_name=index_name)
+    
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
     return VectorStoreIndex.from_documents(documents, storage_context=storage_context)
 
 # Main function to run the Streamlit app
 def show_qa_interface():
     """Displays the Q/A interface for the selected publication."""
-
+    st.write(f"Debug: Selected PDF URL is {st.session_state.get('selected_pdf_url', 'Not Set')}")
     # Initialize settings for embeddings and LLM
     initialize_settings()
 
-    if "selected_pdf_url" not in st.session_state:
+    if "selected_pdf_url" not in st.session_state or not st.session_state["selected_pdf_url"]:
         st.error("No PDF selected. Please go back and select a publication first.")
         return
 
     selected_pdf_url = st.session_state["selected_pdf_url"]
 
+    # Validate URL
+    if not selected_pdf_url.startswith(('http://', 'https://')):
+        st.error(f"Invalid URL: {selected_pdf_url}")
+        return
+
+    # Generate a unique pdf_id
+    pdf_id = hashlib.md5(selected_pdf_url.encode()).hexdigest()
+
+
     st.title("Q/A Interface")
+
 
     # Add a button to go back to the detail view at the top
     if st.button("🔙 Back to Detail View"):
@@ -54,23 +88,19 @@ def show_qa_interface():
             try:
                 response = requests.get(selected_pdf_url)
                 if response.status_code == 200:
-                    temp_pdf_path = os.path.join("temp_files", "temp_selected_pub.pdf")
-                    os.makedirs("temp_files", exist_ok=True)
-
-                    # Save the downloaded PDF temporarily
-                    with open(temp_pdf_path, "wb") as pdf_file:
-                        pdf_file.write(response.content)
+                    pdf_content = response.content
+                    pdf_file = BytesIO(pdf_content)
+                    pdf_file.name = f"temp_selected_pub_{pdf_id}.pdf"
 
                     # Process the downloaded PDF
-                    with open(temp_pdf_path, "rb") as pdf_file:
-                        documents = get_pdf_documents(pdf_file)
+                    documents = get_pdf_documents(pdf_file)
 
                     if not documents:
                         st.error("Failed to process the PDF.")
                         return
 
                     # Create index and store it in session state
-                    st.session_state['index'] = create_index(documents)
+                    st.session_state['index'] = create_index(documents, pdf_id)
                     st.session_state['history'] = []
                     st.success("PDF processed and index created!")
 

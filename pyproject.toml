@@ -6,7 +6,7 @@ authors = ["dharun-karthick-ramaraj <dharun.ramaraj@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 bs4 = "^0.0.2"
 requests = "^2.32.3"
 selenium = "^4.25.0"
@@ -31,6 +31,8 @@ python-multipart = "^0.0.12"
 torch = "^2.5.0"
 tensorflow = "^2.18.0"
 openpyxl = "^3.1.5"
+pinecone-client = "^5.0.1"
+llama-index-vector-stores-pinecone = "^0.2.1"
 
 
 [build-system]

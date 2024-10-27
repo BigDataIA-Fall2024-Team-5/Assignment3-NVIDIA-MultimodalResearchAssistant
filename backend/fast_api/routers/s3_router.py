@@ -4,6 +4,9 @@ from fastapi import APIRouter, HTTPException
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 
 router = APIRouter(
     prefix="/s3",
