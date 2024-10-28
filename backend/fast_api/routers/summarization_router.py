@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from fastapi import APIRouter, HTTPException
-from openai import OpenAI
+from langchain_nvidia_ai_endpoints import ChatNVIDIA
 import boto3
 import os
 
@@ -33,10 +33,10 @@ def get_s3_file_content(bucket_name, file_key):
 @router.post("/generate-summary")
 async def generate_summary(request: SummaryRequest):
     """
-    Generates a summary for the given publication using OpenAI.
+    Generates a summary for the given publication using ChatNVIDIA.
     - Checks for an existing summary in `silver/publication_summary/`.
     - If not found, fetches extracted text from `silver/publications/`.
-    - Generates a summary using OpenAI with instructions to be concise.
+    - Generates a summary using ChatNVIDIA with instructions to be concise.
     - Saves or overwrites the summary in S3.
     """
     try:
@@ -52,13 +52,16 @@ async def generate_summary(request: SummaryRequest):
         # Adjusted: Truncate the text to fit within 5,000 tokens (approximately 25,000 characters)
         truncated_text = publication_text[:25000]  # Approximation for 5,000 tokens
 
-        # Initialize OpenAI client
-        client = OpenAI(
-            base_url="https://integrate.api.nvidia.com/v1",
-            api_key=os.getenv("OPENAI_API_KEY")
+        # Initialize ChatNVIDIA client with the correct API key
+        client = ChatNVIDIA(
+            model="meta/llama3-70b-instruct",
+            api_key=os.getenv("NVIDIA_API_KEY"),
+            temperature=0.5,
+            top_p=1,
+            max_tokens=1024,
         )
 
-        # Generate the summary using OpenAI with a prompt to be concise and focused
+        # Create the prompt for generating a summary
         prompt = (
             "Create a concise and clear summary for the following text, highlighting key insights and important points. "
             "Keep the summary short and focused on essential information: "
@@ -66,18 +69,9 @@ async def generate_summary(request: SummaryRequest):
         )
 
         try:
-            # Send the prompt to the OpenAI API and request a concise summary
-            completion = client.chat.completions.create(
-                model="meta/llama3-70b-instruct",
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.5,
-                top_p=1,
-                max_tokens=500,  # Set the maximum number of tokens to receive
-                stream=False
-            )
-
-            # Extract the summary text from the response
-            summary = "".join(choice.message.content for choice in completion.choices)
+            # Send the prompt to ChatNVIDIA API and stream the response to generate a summary
+            summary_chunks = client.stream([{"role": "user", "content": prompt}])
+            summary = "".join(chunk.content for chunk in summary_chunks)
 
             # Step 3: Overwrite the summary in S3 in the `silver/publication_summary/` path
             s3_client.put_object(Bucket=bucket_name, Key=summary_key, Body=summary.encode('utf-8'))
@@ -88,4 +82,3 @@ async def generate_summary(request: SummaryRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error in summary generation: {str(e)}")
-
