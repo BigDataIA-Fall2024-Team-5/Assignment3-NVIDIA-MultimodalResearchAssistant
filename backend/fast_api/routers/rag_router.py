@@ -163,28 +163,50 @@ async def reload_pdf(data: PDFLink):
 
 @router.post("/query")
 async def query_index(data: QueryRequest):
-    """Query the index with a question and return an answer."""
+    """
+    Query the index with a question and return an answer.
+
+    Args:
+        data (QueryRequest): Contains the PDF ID and the question to be queried.
+
+    Returns:
+        dict: A dictionary containing the answer to the question.
+    """
     try:
+        # Initialize global settings or configurations
         initialize_settings()
         index_name = f"pdf-index-{data.pdf_id}"
 
+        # Check if the index exists in Pinecone
         if index_name not in pc.list_indexes().names():
             raise HTTPException(status_code=404, detail="Index not found for the provided PDF ID.")
 
+        # Set up the vector store and storage context
         vector_store = PineconeVectorStore(index_name=index_name)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
 
-        # Load the index from the storage context
+        # Load the index using the storage context
         index = VectorStoreIndex.from_vector_store(
             vector_store=vector_store,
             storage_context=storage_context
         )
 
-        # Set top_k as 5 for querying the most similar results
+        # Create a query engine with specified similarity settings
         query_engine = index.as_query_engine(similarity_top_k=5, streaming=False)
+        
+        # Query the index with the provided question
         response = query_engine.query(data.question)
 
-        answer = "".join(token for token in response.response_gen)
+        # Extract just the answer text (assuming response has an attribute `text` or similar)
+        # Modify based on how the actual `response` is structured
+        answer = getattr(response, "response", "No answer found")
+
+        # Return the extracted answer
         return {"answer": answer}
+        
+    except HTTPException as http_err:
+        # Handle known HTTP exceptions separately
+        raise http_err
     except Exception as e:
+        # Handle unexpected exceptions with a generic message
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
