@@ -1,12 +1,17 @@
-#streamlit_pages/detail_view
 import streamlit as st
 import requests
-from streamlit_pages.utils import fetch_image_url, fetch_pdf_url, fetch_summary 
+from streamlit_pages.utils import fetch_image_url, fetch_pdf_url, fetch_summary
 
 def show_detail_view(API_BASE_URL):
     """Displays detailed information of a selected publication."""
     if st.session_state.get("selected_pub") is not None:
         selected_pub = st.session_state["selected_pub"]
+
+        # Add a button to go back to the list view at the top
+        if st.button("🔙 Back to List"):
+            st.session_state["selected_pub"] = None
+            st.session_state["page"] = "grid_view"
+            st.rerun()
 
         # Create two columns: one for the image and another for text details
         col1, col2 = st.columns([1, 2])  # Adjust the proportion as needed
@@ -38,9 +43,8 @@ def show_detail_view(API_BASE_URL):
             # Display Created Date if available
             if selected_pub.get("CREATED_DATE"):
                 st.write(f"**Created On:** {selected_pub['CREATED_DATE']}")
-            
+
             if st.button("Take me to Q/A Interface"):
-    # Save the selected publication's PDF URL in session state
                 if pdf_url and pdf_url.startswith(('http://', 'https://')):
                     st.session_state["selected_pdf_url"] = pdf_url
                     st.session_state["page"] = "qa_interface"
@@ -50,22 +54,36 @@ def show_detail_view(API_BASE_URL):
 
         st.markdown("---")
 
-        # Section for additional summary information
-        st.markdown("## Summary Section")
-        
+        # Section for additional summary information with refresh button next to the heading
+        col_summary, col_refresh = st.columns([3, 1])
+        with col_summary:
+            st.markdown("## Summary Section")
+        with col_refresh:
+            if st.button("🔄 Refresh Summary", key="refresh_summary_button"):
+                with st.spinner("Generating summary..."):
+                    payload = {"pdf_link": selected_pub["PDF_LINK"]}
+                    response = requests.post(f"{API_BASE_URL}/summarization/generate-summary", json=payload)
+                    if response.status_code == 200:
+                        new_summary = response.json().get("summary", "")
+                        if new_summary:
+                            st.success("Summary generated successfully!")
+                            st.write(new_summary)
+                        else:
+                            st.warning("Summary generated but no content received.")
+                    else:
+                        st.error(f"Failed to generate the summary. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+
         # Extract the base file name without the extension from the PDF link to form the summary key
         try:
-            # Get the file name without extension to use as the folder name
             base_file_name = selected_pub["PDF_LINK"].split('/')[-1].replace('.pdf', '')
-            if not base_file_name:  # If the extraction fails or results in an empty string
+            if not base_file_name:
                 raise ValueError("Failed to extract folder name from the PDF link.")
-                
-            # Construct the summary key for `silver/publication_summary/`
             summary_key = f"silver/publication_summary/{base_file_name}.txt"
         except Exception as e:
             st.error(f"Error forming summary key: {str(e)}")
             return
 
+        # Fetch and display the summary
         summary_content, summary_timestamp = fetch_summary(API_BASE_URL, summary_key)
 
         if summary_content == "generate":
@@ -76,41 +94,29 @@ def show_detail_view(API_BASE_URL):
         else:
             st.warning("Summary not available. Click 'Refresh' to generate one.")
 
-        # Add a Refresh button for summary generation
-        if st.button("🔄 Refresh Summary"):
-            with st.spinner("Generating summary..."):
-                payload = {"pdf_link": selected_pub["PDF_LINK"]}
-
-                response = requests.post(
-                    f"{API_BASE_URL}/summarization/generate-summary",
-                    json=payload
-                )
-                if response.status_code == 200:
-                    new_summary = response.json().get("summary", "")
-                    if new_summary:
-                        st.success("Summary generated successfully!")
-                        # Display the new summary
-                        st.write(new_summary)
-                    else:
-                        st.warning("Summary generated but no content received.")
-                else:
-                    st.error(f"Failed to generate the summary. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
-
         st.markdown("---")
 
         # Section for Research Notes
         st.markdown("## Research Notes")
-        if selected_pub.get("RESEARCH_NOTES"):
-            st.write(selected_pub["RESEARCH_NOTES"])
-        else:
-            st.info("No research notes available.")
+        display_research_notes(API_BASE_URL, selected_pub["PDF_LINK"])
 
-        st.markdown("---")
-
-        # Add a button to go back to the list view
-        if st.button("🔙 Back to List"):
-            st.session_state["selected_pub"] = None
-            st.session_state["page"] = "grid_view"
-            st.rerun()
     else:
         st.error("No publication selected.")
+
+def display_research_notes(API_BASE_URL, pdf_link):
+    """Fetch and display research notes from S3. Create an empty file if not found."""
+    try:
+        response = requests.get(f"{API_BASE_URL}/s3/fetch-research-notes", params={"pdf_link": pdf_link})
+        if response.status_code == 200:
+            notes_content = response.json().get("notes", "")
+            if notes_content:
+                st.write(notes_content)
+            else:
+                st.info("No research notes available. You can start by going to the Q/A Interface to take notes.")
+        else:
+            st.error(f"Failed to fetch research notes. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+
+    except Exception as e:
+        st.error(f"Error fetching research notes: {str(e)}")
+
+

@@ -72,7 +72,7 @@ def show_qa_interface(API_BASE_URL):
     st.markdown("## Research Notes")
     st.text_area("Research Notes", value=st.session_state.get("research_notes", ""), height=200, key="research_notes_input", on_change=update_research_notes)
 
-    if st.button("Save Notes to S3"):
+    if st.button("Save Notes to S3"):    
         save_notes_to_s3(API_BASE_URL, pdf_link)
 
     # Step 2: Display chat for Q/A
@@ -132,10 +132,16 @@ def fetch_or_create_notes(API_BASE_URL, pdf_link):
     try:
         response = requests.get(f"{API_BASE_URL}/s3/fetch-research-notes", params={"pdf_link": pdf_link})
         if response.status_code == 200:
-            st.session_state["research_notes"] = response.json().get("notes", "")
-        else:
+            notes_content = response.json().get("notes", "")
+            st.session_state["research_notes"] = notes_content
+            if not notes_content:
+                st.info("No research notes available. You can start taking notes in the Q/A Interface.")
+        elif response.status_code == 404:
             st.session_state["research_notes"] = ""
-    except Exception as e:
+            st.info("No research notes found. You can start taking notes in the Q/A Interface.")
+        else:
+            response.raise_for_status()
+    except requests.exceptions.RequestException as e:
         st.error(f"Error fetching research notes: {str(e)}")
 
 def reload_qa_interface(API_BASE_URL, selected_pdf_url, pub_id):

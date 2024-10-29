@@ -129,34 +129,30 @@ async def fetch_summary_from_s3(file_key: str):
 
 
 @router.get("/fetch-research-notes")
-async def fetch_research_notes(pdf_link: str = Query(..., description="Link to the PDF file.")):
+async def fetch_research_notes(pdf_link: str):
     """
     Fetch research notes from S3 using the derived base file name as the file key.
-    If the notes file does not exist, create an empty file and return an empty string.
     """
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
         base_file_name = pdf_link.split('/')[-1].replace('.pdf', '').replace(' ', '-').lower()
         notes_key = f"research_notes/{base_file_name}.txt"
 
-        # Check if the notes file exists in S3
+        # Check if the notes file exists in S3 by trying to get its metadata
         try:
             response = s3_client.get_object(Bucket=bucket_name, Key=notes_key)
             notes_content = response['Body'].read().decode('utf-8')
             return {"notes": notes_content}
         except ClientError as e:
-            if e.response['Error']['Code'] == "404":
-                # If file does not exist, create an empty file
-                s3_client.put_object(Bucket=bucket_name, Key=notes_key, Body="")
-                return {"notes": ""}
+            if e.response['Error']['Code'] == "NoSuchKey":
+                return {"notes": ""}  # Return empty notes gracefully
             else:
-                raise HTTPException(status_code=500, detail="Error fetching research notes")
+                raise HTTPException(status_code=500, detail="Error fetching research notes from S3.")
 
     except NoCredentialsError:
-        raise HTTPException(status_code=403, detail="Credentials not available")
+        raise HTTPException(status_code=403, detail="Credentials not available.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching research notes: {str(e)}")
-
 
 
 @router.post("/save-research-notes")
