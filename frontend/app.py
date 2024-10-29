@@ -1,5 +1,4 @@
-# app.py
-
+#app.py
 import streamlit as st
 from streamlit_pages import grid_view, detail_view, qa_interface
 
@@ -7,7 +6,9 @@ from streamlit_pages import grid_view, detail_view, qa_interface
 API_BASE_URL = "http://localhost:8000"
 
 def main():
-    st.title("📚 Document Exploration Platform")
+    # Only show the title on the grid view page
+    if st.session_state.get("page") == "grid_view":
+        st.title("📚 Document Exploration Platform")
 
     # Initialize session state for navigation
     if "page" not in st.session_state:
