@@ -54,7 +54,7 @@ async def check_index(pdf_id: str):
 
 def initialize_settings():
     Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
-    Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
+    Settings.llm = NVIDIA(model="meta/llama3-70b-instruct")
     Settings.text_splitter = SentenceSplitter(chunk_size=650)
 
 def create_index(documents, pdf_id):
