@@ -43,7 +43,6 @@ def show_detail_view(API_BASE_URL):
     # Save the selected publication's PDF URL in session state
                 if pdf_url and pdf_url.startswith(('http://', 'https://')):
                     st.session_state["selected_pdf_url"] = pdf_url
-                    st.session_state["selected_pdf_id"] = selected_pub["ID"]
                     st.session_state["page"] = "qa_interface"
                     st.rerun()
                 else:
