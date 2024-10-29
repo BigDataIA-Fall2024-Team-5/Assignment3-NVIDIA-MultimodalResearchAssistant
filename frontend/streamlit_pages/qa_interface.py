@@ -17,6 +17,8 @@ def show_qa_interface(API_BASE_URL):
         st.session_state["fetched_notes"] = False
     if "message" not in st.session_state:
         st.session_state["message"] = ""
+    if "query_mode" not in st.session_state:
+        st.session_state["query_mode"] = "Full Document"  # Default to "Full Document"
 
     selected_pub = st.session_state.get("selected_pub")
     pdf_link = selected_pub.get("PDF_LINK")
@@ -82,10 +84,10 @@ def show_qa_interface(API_BASE_URL):
     st.markdown("## Research Notes")
     st.text_area("Research Notes", value=st.session_state.get("research_notes", ""), height=200, key="research_notes_input", on_change=update_research_notes)
 
-    # Save, Refetch, and Clear buttons with rerun to prevent re-query
+    # Save, Refetch, and Clear buttons
     col1, col2, col3 = st.columns([1, 1, 1])
     with col1:
-        if st.button("💾 Save Notes to S3"):
+        if st.button("💾 Save Notes"):
             save_notes_to_s3(API_BASE_URL, pdf_link)
             st.session_state["message"] = "Research notes saved successfully!"
             st.rerun()
@@ -100,9 +102,13 @@ def show_qa_interface(API_BASE_URL):
             st.session_state["message"] = "Research notes cleared!"
             st.rerun()
 
-    # Chat with the assistant section
-    st.markdown("## Chat with the Assistant")
+    # Radio button to select query mode (move this below the Research Notes section)
+    query_mode = st.radio("Select Query Mode", options=["Full Document", "Research Notes"], key="query_mode")
+    
+    # Update the Chat section title based on the selected mode
+    st.markdown(f"## Chat with the Assistant ({query_mode})")
 
+    # Chat with the assistant section
     if st.session_state["index"]:
         # Display chat history with unique keys for the Save button to avoid duplicates
         chat_container = st.container()
@@ -125,7 +131,7 @@ def show_qa_interface(API_BASE_URL):
             # Process assistant's response
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
-                full_response = query_engine(user_input, API_BASE_URL, pub_id)
+                full_response = query_engine(user_input, API_BASE_URL, pub_id, query_mode)
                 message_placeholder.markdown(full_response)
 
             st.session_state['history'].append({"role": "assistant", "content": full_response})
@@ -135,11 +141,14 @@ def show_qa_interface(API_BASE_URL):
             st.session_state['history'] = []
             st.rerun()
 
-def query_engine(query, API_BASE_URL, pub_id):
+def query_engine(query, API_BASE_URL, pub_id, query_mode):
     try:
-        response = requests.post(f"{API_BASE_URL}/rag/query", json={"question": query, "pdf_id": pub_id})
+        index_type = "pdf-index" if query_mode == "Full Document" else "research-notes"
+        response = requests.post(f"{API_BASE_URL}/rag/query", json={"question": query, "pdf_id": pub_id, "index_type": index_type})
         if response.status_code == 200:
             return response.json().get("answer", "")
+        elif response.status_code == 404 and index_type == "research-notes":
+            return "Research notes index not found. Please save research notes first."
         else:
             return f"Error querying the assistant: {response.status_code} - {response.json().get('detail', 'Unknown error')}"
     except Exception as e:
@@ -190,16 +199,25 @@ def update_research_notes():
     st.session_state["research_notes"] = st.session_state["research_notes_input"]
 
 def save_notes_to_s3(API_BASE_URL, pdf_link):
-    """Save research notes to S3."""
+    """Save research notes to S3 and create or update an index in Pinecone."""
     try:
-        response = requests.post(
-            f"{API_BASE_URL}/s3/save-research-notes",
-            json={"pdf_link": pdf_link, "notes": st.session_state["research_notes"]}
-        )
+        # Get the current publication ID from the session state
+        pub_id = st.session_state.get("current_pdf_id", "")
+
+        # Prepare the payload with pdf_link, notes, and pub_id for indexing
+        payload = {
+            "pdf_link": pdf_link,
+            "notes": st.session_state["research_notes"],
+            "pdf_id": pub_id
+        }
+
+        # Save notes to S3 through the API endpoint
+        response = requests.post(f"{API_BASE_URL}/s3/save-research-notes", json=payload)
+        
         if response.status_code == 200:
-            st.success("Research notes saved successfully!")
+            st.success("Research notes saved and indexed successfully!")
         else:
-            st.error("Failed to save research notes to S3.")
+            st.error(f"Failed to save research notes to S3. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
     except Exception as e:
         st.error(f"Error saving research notes: {str(e)}")
 

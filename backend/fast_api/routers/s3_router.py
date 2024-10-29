@@ -6,6 +6,12 @@ import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import os
 from dotenv import load_dotenv
+from pinecone import Pinecone, ServerlessSpec
+from llama_index.embeddings.nvidia import NVIDIAEmbedding
+from llama_index.vector_stores.pinecone import PineconeVectorStore
+from llama_index.core import Settings, StorageContext, Document, VectorStoreIndex 
+from llama_index.core.node_parser import SentenceSplitter
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -14,6 +20,9 @@ router = APIRouter(
     prefix="/s3",
     tags=["S3"]
 )
+
+# Initialize Pinecone client
+pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 
 # Initialize S3 client using environment variables
 s3_client = boto3.client(
@@ -29,6 +38,40 @@ class FetchNotesRequest(BaseModel):
 class SaveNotesRequest(BaseModel):
     pdf_link: str
     notes: str
+    pdf_id: str
+
+# Initialize LLM and embeddings settings for indexing notes
+def initialize_settings_for_notes():
+    Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
+    Settings.text_splitter = SentenceSplitter(chunk_size=650)
+
+def create_or_update_index_for_notes(notes, pdf_id):
+    index_name = f"research-notes-{pdf_id}"
+
+    # Delete the index if it already exists (overwrite behavior)
+    if index_name in pc.list_indexes().names():
+        pc.delete_index(index_name)
+
+    # Create a new index
+    pc.create_index(
+        name=index_name,
+        dimension=1024,
+        metric="cosine",
+        spec=ServerlessSpec(cloud="aws", region="us-east-1")
+    )
+
+    vector_store = PineconeVectorStore(index_name=index_name)
+
+    # Create a storage context without specifying persist_dir if not needed locally
+    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+    # Create a document from the notes
+    document = Document(text=notes)
+
+    # Create or update the index directly in Pinecone
+    index = VectorStoreIndex.from_documents([document], storage_context=storage_context)
+
+    return index
 
 @router.get("/fetch-image/{file_key:path}")
 async def fetch_image_from_s3(file_key: str):
@@ -158,7 +201,8 @@ async def fetch_research_notes(pdf_link: str):
 @router.post("/save-research-notes")
 async def save_research_notes(request: SaveNotesRequest):
     """
-    Save or update research notes in S3 using the derived base file name as the file key.
+    Save or update research notes in S3 using the derived base file name as the file key,
+    and create or update a research-notes index in Pinecone.
     """
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
@@ -167,7 +211,12 @@ async def save_research_notes(request: SaveNotesRequest):
         
         # Upload the notes content to S3
         s3_client.put_object(Bucket=bucket_name, Key=notes_key, Body=request.notes.encode('utf-8'))
-        return {"message": "Research notes saved successfully."}
+
+        # Create or update an index for research notes in Pinecone
+        initialize_settings_for_notes()
+        create_or_update_index_for_notes(request.notes, request.pdf_id)
+
+        return {"message": "Research notes saved and indexed successfully."}
 
     except NoCredentialsError:
         raise HTTPException(status_code=403, detail="Credentials not available")

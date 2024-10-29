@@ -1,3 +1,5 @@
+# routers/rag_router.py
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from pinecone import Pinecone, ServerlessSpec
@@ -39,6 +41,7 @@ class PDFLink(BaseModel):
 class QueryRequest(BaseModel):
     question: str
     pdf_id: str
+    index_type: str 
 
 @router.get("/check-index")
 async def check_index(pdf_id: str):
@@ -167,7 +170,7 @@ async def query_index(data: QueryRequest):
     Query the index with a question and return an answer.
 
     Args:
-        data (QueryRequest): Contains the PDF ID and the question to be queried.
+        data (QueryRequest): Contains the PDF ID, the question to be queried, and the index type.
 
     Returns:
         dict: A dictionary containing the answer to the question.
@@ -175,12 +178,17 @@ async def query_index(data: QueryRequest):
     try:
         # Initialize global settings or configurations
         initialize_settings()
-        index_name = f"pdf-index-{data.pdf_id}"
+        
+        # Determine the index name based on the query mode
+        index_name = f"{data.index_type}-{data.pdf_id}"
 
-        # Check if the index exists in Pinecone
+        # Check if the specified index exists in Pinecone
         if index_name not in pc.list_indexes().names():
-            raise HTTPException(status_code=404, detail="Index not found for the provided PDF ID.")
-
+            if data.index_type == "research-notes":
+                raise HTTPException(status_code=404, detail="Research notes index not found. Please save research notes first.")
+            else:
+                raise HTTPException(status_code=404, detail="Full document index not found for the provided PDF ID.")
+        
         # Set up the vector store and storage context
         vector_store = PineconeVectorStore(index_name=index_name)
         storage_context = StorageContext.from_defaults(vector_store=vector_store)
@@ -197,9 +205,8 @@ async def query_index(data: QueryRequest):
         # Query the index with the provided question
         response = query_engine.query(data.question)
 
-        # Extract just the answer text (assuming response has an attribute `text` or similar)
-        # Modify based on how the actual `response` is structured
-        answer = getattr(response, "response", "No answer found")
+        # Extract the answer text
+        answer = getattr(response, "response")
 
         # Return the extracted answer
         return {"answer": answer}
@@ -210,3 +217,4 @@ async def query_index(data: QueryRequest):
     except Exception as e:
         # Handle unexpected exceptions with a generic message
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
+
