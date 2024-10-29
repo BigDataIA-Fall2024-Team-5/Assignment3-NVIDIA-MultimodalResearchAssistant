@@ -1,3 +1,4 @@
+#app.py
 import streamlit as st
 from streamlit_pages import grid_view, detail_view, qa_interface
 

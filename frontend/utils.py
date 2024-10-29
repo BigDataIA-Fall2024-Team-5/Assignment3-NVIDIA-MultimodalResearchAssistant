@@ -1,3 +1,4 @@
+#streamlit_pages/utils.py
 import requests
 import streamlit as st
 from datetime import datetime
@@ -86,3 +87,60 @@ def fetch_summary(API_BASE_URL, summary_key):
         return None, None  # Return None without logging error messages
     except Exception as e:
         return None, None  # Return None without logging error messages
+
+
+def init_session_state(keys_defaults):
+    """Initializes session state keys if not present."""
+    for key, default in keys_defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = default
+
+def fetch_or_create_notes(API_BASE_URL, pdf_link):
+    """Fetch research notes if they exist or create an empty file initially."""
+    try:
+        response = requests.get(f"{API_BASE_URL}/s3/fetch-research-notes", params={"pdf_link": pdf_link})
+        if response.status_code == 200:
+            notes_content = response.json().get("notes", "")
+            st.session_state["research_notes"] = notes_content
+            if not notes_content:
+                st.info("No research notes available. You can start taking notes in the Q/A Interface.")
+        elif response.status_code == 404:
+            st.session_state["research_notes"] = ""
+            st.info("No research notes found. You can start taking notes in the Q/A Interface.")
+        else:
+            response.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error fetching research notes: {str(e)}")
+
+def update_research_notes():
+    """Update research notes in session state when edited."""
+    st.session_state["research_notes"] = st.session_state["research_notes_input"]
+
+def save_notes_to_s3(API_BASE_URL, pdf_link):
+    """Save research notes to S3 and create or update an index in Pinecone."""
+    try:
+        pub_id = st.session_state.get("current_pdf_id", "")
+        payload = {
+            "pdf_link": pdf_link,
+            "notes": st.session_state["research_notes"],
+            "pdf_id": pub_id
+        }
+        response = requests.post(f"{API_BASE_URL}/s3/save-research-notes", json=payload)
+        if response.status_code == 200:
+            st.success("Research notes saved and indexed successfully!")
+        else:
+            st.error(f"Failed to save research notes to S3. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+    except Exception as e:
+        st.error(f"Error saving research notes: {str(e)}")
+
+def append_to_research_notes(content):
+    """Append assistant's response to the research notes."""
+    st.session_state["research_notes"] += f"\n\n{content}"
+
+def clear_session_state(keys_to_clear=None):
+    """Clears specific session state variables."""
+    if keys_to_clear is None:
+        keys_to_clear = ["message", "index", "history", "research_notes", "current_pdf_id", "fetched_notes"]
+    for key in keys_to_clear:
+        if key in st.session_state:
+            del st.session_state[key]

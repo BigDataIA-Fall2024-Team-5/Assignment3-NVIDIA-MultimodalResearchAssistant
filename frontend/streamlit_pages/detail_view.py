@@ -1,6 +1,7 @@
+#streamlit_pages/detail_view.py
 import streamlit as st
 import requests
-from streamlit_pages.utils import fetch_image_url, fetch_pdf_url, fetch_summary
+from utils import fetch_image_url, fetch_pdf_url, fetch_summary
 
 def show_detail_view(API_BASE_URL):
     """Displays detailed information of a selected publication."""

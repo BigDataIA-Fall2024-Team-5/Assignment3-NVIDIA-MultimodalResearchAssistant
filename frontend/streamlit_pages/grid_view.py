@@ -1,5 +1,6 @@
+#streamlit_pages/grid_view.py
 import streamlit as st
-from streamlit_pages.utils import fetch_publications, fetch_image_url
+from utils import fetch_publications, fetch_image_url
 import os
 
 def show_grid_view(API_BASE_URL):
@@ -91,3 +92,4 @@ def show_grid_view(API_BASE_URL):
             
             # Rerun to go to the detailed view
             st.rerun()
+
