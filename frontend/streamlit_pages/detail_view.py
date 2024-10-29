@@ -23,7 +23,7 @@ def show_detail_view(API_BASE_URL):
                 image_url = fetch_image_url(API_BASE_URL, file_key)
 
                 if image_url:
-                    st.image(image_url, caption=selected_pub['TITLE'], use_column_width=True)
+                    st.image(image_url, caption=selected_pub['TITLE'], width=250)  # Slightly bigger image size
 
             # Fetch and display the pre-signed URL for downloading the PDF below the image
             if selected_pub.get('PDF_LINK'):
@@ -54,11 +54,22 @@ def show_detail_view(API_BASE_URL):
 
         st.markdown("---")
 
-        # Section for additional summary information with refresh button next to the heading
-        col_summary, col_refresh = st.columns([3, 1])
+        # Add custom CSS to create a border
+        st.markdown("""
+        <style>
+        .stColumn {
+            border-right: 1px solid #e0e0e0;
+            padding-right: 20px;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+
+        # Summary and Research Notes side by side in a 2:1 ratio
+        col_summary, col_notes = st.columns([2, 1])
+
         with col_summary:
+            st.markdown('<div class="stColumn">', unsafe_allow_html=True)
             st.markdown("## Summary Section")
-        with col_refresh:
             if st.button("🔄 Refresh Summary", key="refresh_summary_button"):
                 with st.spinner("Generating summary..."):
                     payload = {"pdf_link": selected_pub["PDF_LINK"]}
@@ -73,32 +84,31 @@ def show_detail_view(API_BASE_URL):
                     else:
                         st.error(f"Failed to generate the summary. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
 
-        # Extract the base file name without the extension from the PDF link to form the summary key
-        try:
-            base_file_name = selected_pub["PDF_LINK"].split('/')[-1].replace('.pdf', '')
-            if not base_file_name:
-                raise ValueError("Failed to extract folder name from the PDF link.")
-            summary_key = f"silver/publication_summary/{base_file_name}.txt"
-        except Exception as e:
-            st.error(f"Error forming summary key: {str(e)}")
-            return
+            # Extract the base file name without the extension from the PDF link to form the summary key
+            try:
+                base_file_name = selected_pub["PDF_LINK"].split('/')[-1].replace('.pdf', '')
+                if not base_file_name:
+                    raise ValueError("Failed to extract folder name from the PDF link.")
+                summary_key = f"silver/publication_summary/{base_file_name}.txt"
+            except Exception as e:
+                st.error(f"Error forming summary key: {str(e)}")
+                return
 
-        # Fetch and display the summary
-        summary_content, summary_timestamp = fetch_summary(API_BASE_URL, summary_key)
+            # Fetch and display the summary
+            summary_content, summary_timestamp = fetch_summary(API_BASE_URL, summary_key)
 
-        if summary_content == "generate":
-            st.warning("Summary not found. Click 'Refresh' to generate one.")
-        elif summary_content:
-            st.write(f"*Last updated on: {summary_timestamp}*")
-            st.write(summary_content)
-        else:
-            st.warning("Summary not available. Click 'Refresh' to generate one.")
+            if summary_content == "generate":
+                st.warning("Summary not found. Click 'Refresh' to generate one.")
+            elif summary_content:
+                st.write(f"*Last updated on: {summary_timestamp}*")
+                st.write(summary_content)
+            else:
+                st.warning("Summary not available. Click 'Refresh' to generate one.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        st.markdown("---")
-
-        # Section for Research Notes
-        st.markdown("## Research Notes")
-        display_research_notes(API_BASE_URL, selected_pub["PDF_LINK"])
+        with col_notes:
+            st.markdown("## Research Notes")
+            display_research_notes(API_BASE_URL, selected_pub["PDF_LINK"])
 
     else:
         st.error("No publication selected.")
@@ -113,10 +123,10 @@ def display_research_notes(API_BASE_URL, pdf_link):
                 st.write(notes_content)
             else:
                 st.info("No research notes available. You can start by going to the Q/A Interface to take notes.")
+        elif response.status_code == 404:
+            st.info("No research notes available. You can start by going to the Q/A Interface to take notes.")
         else:
             st.error(f"Failed to fetch research notes. Error: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
 
     except Exception as e:
         st.error(f"Error fetching research notes: {str(e)}")
-
-

@@ -1,10 +1,9 @@
 import requests
 import streamlit as st
 
-# Main function to run the Streamlit app
 def show_qa_interface(API_BASE_URL):
     """Displays the Q/A interface for the selected publication."""
-    
+
     # Initialize session state keys
     if "research_notes" not in st.session_state:
         st.session_state["research_notes"] = ""
@@ -14,30 +13,26 @@ def show_qa_interface(API_BASE_URL):
         st.session_state["index"] = False
     if "current_pdf_id" not in st.session_state:
         st.session_state["current_pdf_id"] = None
+    if "fetched_notes" not in st.session_state:
+        st.session_state["fetched_notes"] = False
+    if "message" not in st.session_state:
+        st.session_state["message"] = ""
 
     selected_pub = st.session_state.get("selected_pub")
     pdf_link = selected_pub.get("PDF_LINK")
     pub_id = str(selected_pub.get("ID"))
     selected_pdf_url = st.session_state.get("selected_pdf_url", "")
+    title = selected_pub.get("TITLE", "Q/A Interface")  # Default title if not found
 
-    st.title("Q/A Interface")
+    # Set the title of the Q/A interface with the publication title
+    st.title(f"Q/A Interface - {title}")
 
-    # Fetch or create research notes on load
-    if not st.session_state.get("fetched_notes", False):
-        fetch_or_create_notes(API_BASE_URL, pdf_link)
-        st.session_state["fetched_notes"] = True
+    # Display any persistent messages from session state
+    if st.session_state["message"]:
+        st.info(st.session_state["message"])
+        st.session_state["message"] = ""  # Clear the message after displaying it
 
-    # Add a button to go back to the detail view at the top
-    if st.button("🔙 Back to Detail View"):
-        clear_session_state()
-        st.session_state["page"] = "detail_view"
-        st.rerun()
-
-    # Display the selected PDF link for reference
-    if pdf_link:
-        st.markdown(f"[📄 View Selected PDF]({selected_pdf_url})", unsafe_allow_html=True)
-
-    # Step 1: Check if the index exists, otherwise process and index the PDF
+    # Check if index exists or needs processing
     if st.session_state["current_pdf_id"] != pub_id:
         st.session_state["current_pdf_id"] = pub_id
         st.session_state["index"] = False
@@ -64,31 +59,51 @@ def show_qa_interface(API_BASE_URL):
                 st.error(f"Error during processing or index check: {str(e)}")
                 return
 
-    # Add a button to reload the Q/A interface (force reprocessing)
-    if st.button("Reload Q/A Interface"):
-        reload_qa_interface(API_BASE_URL, selected_pdf_url, pub_id)
+    # Fetch research notes if not already fetched
+    if not st.session_state.get("fetched_notes", False):
+        fetch_or_create_notes(API_BASE_URL, pdf_link)
+        st.session_state["fetched_notes"] = True
 
-    # Research Notes section
+    # Display PDF link for quick access
+    st.markdown(f"[📄 View Selected PDF]({selected_pdf_url})", unsafe_allow_html=True)
+
+    # Add Back to Detail View and Reload Q/A Interface buttons in columns
+    col_back, col_reload = st.columns([1, 10])
+    with col_back:
+        if st.button("🔙 Back to Detail View"):
+            clear_session_state()
+            st.session_state["page"] = "detail_view"
+            st.rerun()
+    with col_reload:
+        if st.button("Reload Q/A Interface"):
+            reload_qa_interface(API_BASE_URL, selected_pdf_url, pub_id)
+
+    # Display research notes section
     st.markdown("## Research Notes")
     st.text_area("Research Notes", value=st.session_state.get("research_notes", ""), height=200, key="research_notes_input", on_change=update_research_notes)
 
-    if st.button("Save Notes to S3"):    
-        save_notes_to_s3(API_BASE_URL, pdf_link)
+    # Save, Refetch, and Clear buttons with rerun to prevent re-query
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col1:
+        if st.button("💾 Save Notes to S3"):
+            save_notes_to_s3(API_BASE_URL, pdf_link)
+            st.session_state["message"] = "Research notes saved successfully!"
+            st.rerun()
+    with col2:
+        if st.button("🔄 Refetch Notes"):
+            fetch_or_create_notes(API_BASE_URL, pdf_link)
+            st.session_state["message"] = "Research notes refetched successfully!"
+            st.rerun()
+    with col3:
+        if st.button("❌ Clear Notes"):
+            st.session_state["research_notes"] = ""
+            st.session_state["message"] = "Research notes cleared!"
+            st.rerun()
 
-    # Step 2: Display chat for Q/A
+    # Chat with the assistant section
     st.markdown("## Chat with the Assistant")
 
     if st.session_state["index"]:
-        def query_engine(query):
-            try:
-                response = requests.post(f"{API_BASE_URL}/rag/query", json={"question": query, "pdf_id": pub_id})
-                if response.status_code == 200:
-                    return response.json().get("answer", "")
-                else:
-                    return f"Error querying the assistant: {response.status_code} - {response.json().get('detail', 'Unknown error')}."
-            except Exception as e:
-                return f"Error querying the assistant: {str(e)}"
-
         # Display chat history with unique keys for the Save button to avoid duplicates
         chat_container = st.container()
         with chat_container:
@@ -110,7 +125,7 @@ def show_qa_interface(API_BASE_URL):
             # Process assistant's response
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
-                full_response = query_engine(user_input)
+                full_response = query_engine(user_input, API_BASE_URL, pub_id)
                 message_placeholder.markdown(full_response)
 
             st.session_state['history'].append({"role": "assistant", "content": full_response})
@@ -120,9 +135,19 @@ def show_qa_interface(API_BASE_URL):
             st.session_state['history'] = []
             st.rerun()
 
+def query_engine(query, API_BASE_URL, pub_id):
+    try:
+        response = requests.post(f"{API_BASE_URL}/rag/query", json={"question": query, "pdf_id": pub_id})
+        if response.status_code == 200:
+            return response.json().get("answer", "")
+        else:
+            return f"Error querying the assistant: {response.status_code} - {response.json().get('detail', 'Unknown error')}"
+    except Exception as e:
+        return f"Error querying the assistant: {str(e)}"
+
 def clear_session_state():
     """Clears specific session state variables."""
-    keys_to_clear = ["selected_pdf_id", "index", "history", "research_notes", "current_pdf_id", "fetched_notes"]
+    keys_to_clear = ["message", "index", "history", "research_notes", "current_pdf_id", "fetched_notes"]
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]

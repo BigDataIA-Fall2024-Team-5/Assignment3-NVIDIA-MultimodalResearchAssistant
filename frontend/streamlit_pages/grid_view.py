@@ -13,7 +13,7 @@ def show_grid_view(API_BASE_URL):
         st.markdown("---")
 
         # Define the number of columns in the grid
-        num_cols = 4  # Set to 4 columns per row for better alignment
+        num_cols = 5  # Set to 5 columns per row for better alignment
 
         # Placeholder image path for publications without images
         placeholder_image_path = os.path.join("no-image-placeholder.png")
@@ -22,7 +22,7 @@ def show_grid_view(API_BASE_URL):
         for idx, pub in enumerate(publications):
             if idx % num_cols == 0:
                 # Create a new row for every `num_cols` publications
-                cols = st.columns(num_cols)
+                cols = st.columns(num_cols, gap="small")  # Reduce the gap between columns
 
             # Get the column for the current publication
             col = cols[idx % num_cols]
@@ -44,13 +44,28 @@ def show_grid_view(API_BASE_URL):
                     # Create a clickable image using an anchor tag in Markdown
                     image_html = f"""
                     <a href="/?selected_pub_id={pub['ID']}">
-                        <img src="{image_url}" alt="{pub['TITLE']}" style="width:150px; height:200px; border-radius: 8px; margin-bottom: 5px;">
+                        <img src="{image_url}" alt="{pub['TITLE']}" style="width:140px; height:190px; border-radius: 6px; margin-bottom: 5px;">
                     </a>
                     """
                     # Display the clickable image using Markdown
                     col.markdown(image_html, unsafe_allow_html=True)
 
-                # Display the publication title as a clickable button
+                # Display the publication title as a clickable button with adjusted width
+                button_style = f"""
+                <style>
+                    .stButton>button {{
+                        width: 140px;
+                        height: auto;
+                        white-space: normal;
+                        text-align: center;
+                        padding: 5px;
+                        font-size: 12px;
+                        word-wrap: break-word;
+                        line-height: 1.2;
+                    }}
+                </style>
+                """
+                col.markdown(button_style, unsafe_allow_html=True)
                 if col.button(pub['TITLE'], key=f"btn_{pub['ID']}"):
                     # When the button is clicked, update the session state and navigate to the detail view
                     st.session_state["selected_pub"] = pub
