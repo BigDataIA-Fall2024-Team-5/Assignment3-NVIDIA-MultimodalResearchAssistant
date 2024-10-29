@@ -72,12 +72,35 @@ def describe_image(image_content):
     return response_data["choices"][0]['message']['content']
 
 def clear_cache_directory(cache_dir):
-    """Delete all files and folders inside a specified cache directory."""
+    """Delete all files and folders inside a specified cache directory and recreate necessary subdirectories."""
     if os.path.exists(cache_dir):
-        # Remove all files and folders inside the directory
-        shutil.rmtree(cache_dir)
-        # Recreate the directory to be empty
-        os.makedirs(cache_dir, exist_ok=True)
+        try:
+            # Remove all files and folders inside the directory
+            for item in os.listdir(cache_dir):
+                item_path = os.path.join(cache_dir, item)
+                if os.path.isfile(item_path):
+                    os.unlink(item_path)
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)
+            #print(f"Cleared cache directory: {cache_dir}")
+        except Exception as e:
+            print(f"Error clearing cache directory: {e}")
+    else:
+        print(f"Cache directory does not exist: {cache_dir}")
+    
+    # Ensure the main cache directory exists
+    os.makedirs(cache_dir, exist_ok=True)
+    
+    # Create necessary subdirectories
+    vectorstore_dir = os.path.join(cache_dir, "vectorstore")
+    table_refs_dir = os.path.join(vectorstore_dir, "table_references")
+    image_refs_dir = os.path.join(vectorstore_dir, "image_references")
+    
+    for dir_path in [vectorstore_dir, table_refs_dir, image_refs_dir]:
+        os.makedirs(dir_path, exist_ok=True)
+        #print(f"Created directory: {dir_path}")
+
+    #print("Cache directories have been set up.")
 
 def process_graph(image_content):
     """Process a graph image and generate a description using NVIDIA API."""

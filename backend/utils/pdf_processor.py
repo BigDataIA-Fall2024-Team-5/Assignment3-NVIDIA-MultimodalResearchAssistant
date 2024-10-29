@@ -5,7 +5,7 @@ import fitz
 from llama_index.core import Document
 from utils.helper_functions import (
     extract_text_around_item, process_text_blocks, 
-    is_graph, process_graph
+    is_graph, process_graph, clear_cache_directory
 )
 
 # Define a hidden .cache directory for storing temporary and vectorstore files
@@ -20,6 +20,8 @@ os.makedirs(TMP_DIR, exist_ok=True)
 
 def get_pdf_documents(pdf_file):
     """Process a PDF file and extract text, tables, and images."""
+    # Clear the cache before processing
+    clear_cache_directory(CACHE_DIR)
     all_pdf_documents = []
     ongoing_tables = {}
 
@@ -53,6 +55,12 @@ def get_pdf_documents(pdf_file):
                 all_pdf_documents.append(text_doc)
 
     f.close()
+
+       # Add these lines at the end of the function
+    print("Vectorstore contents:", os.listdir(VECTORSTORE_DIR))
+    print("Table references:", os.listdir(os.path.join(VECTORSTORE_DIR, "table_references")))
+    print("Image references:", os.listdir(os.path.join(VECTORSTORE_DIR, "image_references")))
+
     return all_pdf_documents
 
 def parse_all_tables(filename, page, pagenum, text_blocks, ongoing_tables):
