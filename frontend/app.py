@@ -1,9 +1,10 @@
 #app.py
 import streamlit as st
+import os
 from streamlit_pages import grid_view, detail_view, qa_interface
 
 # FastAPI URL (change it if you deploy it to an online server)
-API_BASE_URL = "http://localhost:8000"
+FASTAPI_URL = os.getenv("FASTAPI_URL")
 
 # Set Streamlit page configuration to wide mode
 st.set_page_config(layout="wide")
@@ -20,11 +21,11 @@ def main():
 
     # Navigation between pages based on session state
     if st.session_state["page"] == "grid_view":
-        grid_view.show_grid_view(API_BASE_URL)
+        grid_view.show_grid_view(FASTAPI_URL)
     elif st.session_state["page"] == "detail_view":
-        detail_view.show_detail_view(API_BASE_URL)
+        detail_view.show_detail_view(FASTAPI_URL)
     elif st.session_state["page"] == "qa_interface":
-        qa_interface.show_qa_interface(API_BASE_URL)
+        qa_interface.show_qa_interface(FASTAPI_URL)
 
 if __name__ == "__main__":
     main()

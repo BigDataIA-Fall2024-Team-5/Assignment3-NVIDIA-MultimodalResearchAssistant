@@ -1,4 +1,4 @@
-# routers/rag_router.py
+# fast_api/routers/rag_router.py
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel

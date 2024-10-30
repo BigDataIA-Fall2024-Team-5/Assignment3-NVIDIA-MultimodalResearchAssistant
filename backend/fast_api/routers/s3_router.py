@@ -1,4 +1,4 @@
-# routers/s3_router.py
+# fast_api/routers/s3_router.py
 
 from fastapi import APIRouter, HTTPException, Body, Query
 from pydantic import BaseModel
@@ -80,7 +80,7 @@ async def fetch_image_from_s3(file_key: str):
     """
     try:
         bucket_name = os.getenv("S3_BUCKET_NAME")
-        print(f"Received request for file_key: {file_key}")  # Debugging line
+        #print(f"Received request for file_key: {file_key}")  # Debugging line
 
         # Check if the file exists in S3 by trying to get its metadata
         try:

@@ -1,10 +1,9 @@
-# fastapi_main.py
+# fast_api/fastapi_main.py
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fast_api.routers import snowflake_router, s3_router, summarization_router, rag_router
 from dotenv import load_dotenv
-import os
 
 # Load environment variables from .env file
 load_dotenv()

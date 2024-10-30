@@ -1,3 +1,5 @@
+# fast_api/routers/snowflake_router.py
+
 from fastapi import APIRouter, HTTPException
 from typing import List
 from pydantic import BaseModel
@@ -34,10 +36,10 @@ def get_snowflake_connection():
             database=os.getenv("SNOWFLAKE_DATABASE", "DB_CFA_PUBLICATIONS"),
             schema=os.getenv("SNOWFLAKE_SCHEMA", "CFA_PUBLICATIONS")
         )
-        print("Connected to Snowflake successfully")  # Debug print
+        #print("Connected to Snowflake successfully")  # Debug print
         return connection
     except Exception as e:
-        print(f"Snowflake connection error: {str(e)}")  # Debug print
+        #print(f"Snowflake connection error: {str(e)}")  # Debug print
         raise
 
 @router.get("/publications", response_model=List[Publication])
@@ -69,8 +71,8 @@ async def get_publications_from_snowflake():
         cursor.close()
         conn.close()
         
-        print("Fetched publications successfully")  # Debug print
+        #print("Fetched publications successfully")  # Debug print
         return publications
     except Exception as e:
-        print(f"Error fetching data from Snowflake: {str(e)}")  # Debug print
+        #print(f"Error fetching data from Snowflake: {str(e)}")  # Debug print
         raise HTTPException(status_code=500, detail=f"Error fetching data: {str(e)}")
