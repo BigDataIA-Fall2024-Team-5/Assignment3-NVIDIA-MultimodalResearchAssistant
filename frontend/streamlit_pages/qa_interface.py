@@ -1,9 +1,9 @@
-#streamlit_pages/qa_interface.py
+# streamlit_pages/qa_interface.py
 import requests
 import streamlit as st
 from utils import (
     init_session_state, fetch_or_create_notes, update_research_notes, save_notes_to_s3, 
-    append_to_research_notes, clear_session_state
+    append_to_research_notes, clear_session_state, generate_report
 )
 
 def show_qa_interface(API_BASE_URL):
@@ -76,6 +76,18 @@ def show_qa_interface(API_BASE_URL):
             st.rerun()
 
     query_mode = st.radio("Select Query Mode", options=["Full Document", "Research Notes"], key="query_mode")
+
+    # New section for report generation
+    # Replace the report generation section with this:
+    if st.button("Generate Report"):
+        if st.session_state['history']:
+            report_data = generate_report(API_BASE_URL, pub_id, st.session_state['history'], query_mode)
+            if report_data:
+                st.session_state.report_data = report_data
+                st.session_state.page = "report_page"
+                st.rerun()
+        else:
+            st.warning("Please have a conversation before generating a report.")
     st.markdown(f"## Chat with the Assistant ({query_mode})")
 
     if st.session_state["index"]:
@@ -130,7 +142,6 @@ def check_and_process_index(API_BASE_URL, pub_id, selected_pdf_url):
             st.error(f"Error during processing or index check: {str(e)}")
             return
 
-
 def query_engine(query, API_BASE_URL, pub_id, query_mode):
     try:
         index_type = "pdf-index" if query_mode == "Full Document" else "research-notes"
@@ -143,8 +154,6 @@ def query_engine(query, API_BASE_URL, pub_id, query_mode):
             return f"Error querying the assistant: {response.status_code} - {response.json().get('detail', 'Unknown error')}"
     except Exception as e:
         return f"Error querying the assistant: {str(e)}"
-
-
 
 def reload_qa_interface(API_BASE_URL, selected_pdf_url, pub_id):
     """Reloads and reprocesses the Q/A interface for the given publication."""
@@ -161,3 +170,22 @@ def reload_qa_interface(API_BASE_URL, selected_pdf_url, pub_id):
         except Exception as e:
             st.error(f"Error reloading the Q/A Interface: {str(e)}")
             return
+
+
+def generate_report(API_BASE_URL, pub_id, conversation_history, query_mode):
+    try:
+        index_type = "pdf-index" if query_mode == "Full Document" else "research-notes"
+        payload = {
+            "conversation": conversation_history,
+            "pdf_id": pub_id,
+            "index_type": index_type
+        }
+        response = requests.post(f"{API_BASE_URL}/rag/generate-report", json=payload)
+        if response.status_code == 200:
+            return response.json().get("report", {})
+        else:
+            st.error(f"Error generating report: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+            return None
+    except Exception as e:
+        st.error(f"Error generating report: {str(e)}")
+        return None

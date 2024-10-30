@@ -1,6 +1,6 @@
-#app.py
+# app.py
 import streamlit as st
-from streamlit_pages import grid_view, detail_view, qa_interface
+from streamlit_pages import grid_view, detail_view, qa_interface, report_page
 from dotenv import load_dotenv
 import os
 
@@ -30,6 +30,8 @@ def main():
         detail_view.show_detail_view(FASTAPI_URL)
     elif st.session_state["page"] == "qa_interface":
         qa_interface.show_qa_interface(FASTAPI_URL)
+    elif st.session_state["page"] == "report_page":
+        report_page.show_report_page(FASTAPI_URL)
 
 if __name__ == "__main__":
     main()

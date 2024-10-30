@@ -144,3 +144,21 @@ def clear_session_state(keys_to_clear=None):
     for key in keys_to_clear:
         if key in st.session_state:
             del st.session_state[key]
+
+def generate_report(API_BASE_URL, pub_id, conversation_history, query_mode):
+    try:
+        index_type = "pdf-index" if query_mode == "Full Document" else "research-notes"
+        payload = {
+            "conversation": conversation_history,
+            "pdf_id": pub_id,
+            "index_type": index_type
+        }
+        response = requests.post(f"{API_BASE_URL}/rag/generate-report", json=payload)
+        if response.status_code == 200:
+            return response.json().get("report", {})
+        else:
+            st.error(f"Error generating report: {response.status_code} - {response.json().get('detail', 'Unknown error')}")
+            return None
+    except Exception as e:
+        st.error(f"Error generating report: {str(e)}")
+        return None

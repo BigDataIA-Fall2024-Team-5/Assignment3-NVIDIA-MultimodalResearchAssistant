@@ -1,5 +1,6 @@
 # fast_api/routers/rag_router.py
 
+import boto3
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from pinecone import Pinecone, ServerlessSpec
@@ -42,6 +43,11 @@ class QueryRequest(BaseModel):
     question: str
     pdf_id: str
     index_type: str 
+
+class ReportRequest(BaseModel):
+    conversation: list
+    pdf_id: str
+    index_type: str
 
 @router.get("/check-index")
 async def check_index(pdf_id: str):
@@ -227,3 +233,64 @@ async def query_index(data: QueryRequest):
     except Exception as e:
         # Handle unexpected exceptions with a generic message
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
+    
+@router.post("/generate-report")
+async def generate_report(data: ReportRequest):
+    try:
+        initialize_settings()
+        
+        index_name = f"{data.index_type}-{data.pdf_id}"
+
+        if index_name not in pc.list_indexes().names():
+            raise HTTPException(status_code=404, detail="Index not found for the provided PDF ID.")
+        
+        vector_store = PineconeVectorStore(index_name=index_name)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+        index = VectorStoreIndex.from_vector_store(
+            vector_store=vector_store,
+            storage_context=storage_context
+        )
+
+        query_engine = index.as_query_engine(similarity_top_k=5, streaming=False)
+        
+        # Generate a summary of the conversation
+        conversation_summary = "\n".join([f"{msg['role']}: {msg['content']}" for msg in data.conversation])
+        summary_prompt = f"Summarize the following conversation in brief and provide key insights:\n\n{conversation_summary}"
+        summary_response = query_engine.query(summary_prompt)
+        summary = getattr(summary_response, "response")
+
+        # Generate an explanation of the conversation
+        explanation_prompt = "Explain the main topics in brief discussed in the conversation and why they are important and site sources as validation."
+        explanation_response = query_engine.query(explanation_prompt)
+        explanation = getattr(explanation_response, "response")
+
+        # Fetch research notes
+        research_notes = fetch_research_notes(data.pdf_id)
+
+        report = {
+            "summary": summary,
+            "explanation": explanation,
+            "research_notes": research_notes,
+            "conversation": data.conversation
+        }
+
+        return {"report": report}
+        
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
+    
+def fetch_research_notes(pdf_id: str):
+    try:
+        bucket_name = os.getenv("S3_BUCKET_NAME")
+        s3_client = boto3.client('s3')
+        notes_key = f"research_notes/{pdf_id}.txt"
+        
+        response = s3_client.get_object(Bucket=bucket_name, Key=notes_key)
+        notes_content = response['Body'].read().decode('utf-8')
+        return notes_content
+    except Exception as e:
+        print(f"Error fetching research notes: {str(e)}")
+        return ""   
