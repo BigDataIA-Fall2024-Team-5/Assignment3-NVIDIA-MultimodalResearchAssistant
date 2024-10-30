@@ -81,15 +81,20 @@ def create_index(documents, pdf_id):
     
     return index
 
+def delete_existing_index(pdf_id):
+    index_name = f"pdf-index-{pdf_id}"
+    if index_name in pc.list_indexes().names():
+        pc.delete_index(index_name)
+
 @router.post("/process-pdf")
 async def process_pdf_link(data: PDFLink):
     """Process a given PDF link, create an index, and return success message."""
     try:
         pdf_id = str(data.pdf_id)
 
-        # Clear the temporary cache directory before processing
-        clear_cache_directory(TMP_DIR)
-
+        # Clear the entire cache directory before processing
+        clear_cache_directory(CACHE_DIR)
+        
         # Ensure the temporary directory exists
         os.makedirs(TMP_DIR, exist_ok=True)
 
@@ -119,16 +124,18 @@ async def process_pdf_link(data: PDFLink):
         if not documents:
             raise HTTPException(status_code=500, detail="Failed to process the PDF document.")
 
+        # Delete existing index if it exists
+        delete_existing_index(pdf_id)
+
         # Create the index using the processed documents
         initialize_settings()
         create_index(documents, pdf_id)
 
         return {"message": "PDF processed and index created successfully!"}
     except HTTPException as e:
-        raise e  # Re-raise HTTPExceptions so they don't get re-wrapped
+        raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing the PDF: {str(e)}")
-
 
 @router.post("/reload-pdf")
 async def reload_pdf(data: PDFLink):
@@ -136,14 +143,15 @@ async def reload_pdf(data: PDFLink):
     try:
         pdf_id = data.pdf_id
 
+        # Clear the entire cache directory before processing
+        clear_cache_directory(CACHE_DIR)
+        
+        # Ensure the temporary directory exists
+        os.makedirs(TMP_DIR, exist_ok=True)
+        
         # Delete existing index if it exists
-        index_name = f"pdf-index-{pdf_id}"
-        if index_name in pc.list_indexes().names():
-            pc.delete_index(index_name)
-
-        # Clear the temporary cache directory before processing
-        clear_cache_directory(TMP_DIR)
-
+        delete_existing_index(pdf_id)
+        
         # Reprocess and create a new index
         response = requests.get(data.pdf_link)
         if response.status_code != 200:
@@ -153,7 +161,9 @@ async def reload_pdf(data: PDFLink):
         pdf_file = BytesIO(pdf_content)
         pdf_file.name = f"temp_selected_pub_{pdf_id}.pdf"
 
-        documents = get_pdf_documents(pdf_file)
+        pdf_file_path = os.path.join(TMP_DIR, f"temp_selected_pub_{pdf_id}.pdf")
+
+        documents = get_pdf_documents(open(pdf_file_path, "rb"))
         if not documents:
             raise HTTPException(status_code=500, detail="Failed to process the PDF document.")
 
@@ -217,4 +227,3 @@ async def query_index(data: QueryRequest):
     except Exception as e:
         # Handle unexpected exceptions with a generic message
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
-

@@ -18,10 +18,11 @@ os.makedirs(CACHE_DIR, exist_ok=True)
 os.makedirs(VECTORSTORE_DIR, exist_ok=True)
 os.makedirs(TMP_DIR, exist_ok=True)
 
-def get_pdf_documents(pdf_file):
+def get_pdf_documents(pdf_file, force_fresh=True):
     """Process a PDF file and extract text, tables, and images."""
     # Clear the cache before processing
-    clear_cache_directory(CACHE_DIR)
+    if force_fresh:
+        clear_cache_directory(CACHE_DIR)
     all_pdf_documents = []
     ongoing_tables = {}
 

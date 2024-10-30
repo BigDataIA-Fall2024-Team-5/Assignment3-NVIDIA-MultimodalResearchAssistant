@@ -85,7 +85,7 @@ def show_qa_interface(API_BASE_URL):
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
                     if message["role"] == "assistant":
-                        if st.button("Save to Research Notes", key=f"save_{message['role']}_{i}"):
+                        if st.button("Add to Research Notes", key=f"save_{message['role']}_{i}"):
                             append_to_research_notes(message["content"])
                             st.rerun()
 
