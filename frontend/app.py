@@ -1,7 +1,11 @@
 #app.py
 import streamlit as st
-import os
 from streamlit_pages import grid_view, detail_view, qa_interface
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # FastAPI URL (change it if you deploy it to an online server)
 FASTAPI_URL = os.getenv("FASTAPI_URL")

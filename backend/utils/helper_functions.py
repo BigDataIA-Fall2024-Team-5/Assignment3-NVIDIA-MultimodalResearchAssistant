@@ -7,10 +7,6 @@ from io import BytesIO
 from PIL import Image
 import requests
 from llama_index.llms.nvidia import NVIDIA
-from dotenv import load_dotenv
-
-# Load environment variables from .env file
-load_dotenv()
 
 def set_environment_variables():
     """Set necessary environment variables."""

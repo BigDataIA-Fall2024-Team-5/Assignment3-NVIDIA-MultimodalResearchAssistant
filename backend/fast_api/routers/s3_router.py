@@ -5,16 +5,11 @@ from pydantic import BaseModel
 import boto3
 from botocore.exceptions import NoCredentialsError, ClientError
 import os
-from dotenv import load_dotenv
 from pinecone import Pinecone, ServerlessSpec
 from llama_index.embeddings.nvidia import NVIDIAEmbedding
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from llama_index.core import Settings, StorageContext, Document, VectorStoreIndex 
 from llama_index.core.node_parser import SentenceSplitter
-
-
-# Load environment variables from .env file
-load_dotenv()
 
 router = APIRouter(
     prefix="/s3",
