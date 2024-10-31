@@ -170,6 +170,9 @@ async def reload_pdf(data: PDFLink):
 
         pdf_file_path = os.path.join(TMP_DIR, f"temp_selected_pub_{pdf_id}.pdf")
 
+        with open(pdf_file_path, "wb") as f:
+            f.write(pdf_content)
+
         documents = get_pdf_documents(open(pdf_file_path, "rb"))
         if not documents:
             raise HTTPException(status_code=500, detail="Failed to process the PDF document.")
@@ -216,16 +219,31 @@ async def query_index(data: QueryRequest):
             storage_context=storage_context
         )
 
-        # Create a query engine with specified similarity settings
-        query_engine = index.as_query_engine(similarity_top_k=5, streaming=False)
+        # Create a query engine with specified similarity settings and response mode
+        query_engine = index.as_query_engine(
+            similarity_top_k=5,
+            streaming=False,
+            response_mode="tree_summarize"  # This encourages more complete responses
+        )
         
-        # Query the index with the provided question
-        response = query_engine.query(data.question)
+        # Modify the prompt to encourage a complete sentence answer
+        enhanced_prompt = f"Please provide a complete sentence answer to the following question: {data.question}"
+        
+        # Query the index with the enhanced prompt
+        response = query_engine.query(enhanced_prompt)
 
         # Extract the answer text
         answer = getattr(response, "response")
 
-        # Return the extracted answer
+        # Post-process the answer to ensure it's a complete sentence
+        if not answer.endswith(('.', '!', '?')):
+            answer += '.'
+
+        # If the answer doesn't seem to be a complete sentence, prepend context
+        if not answer[0].isupper() or len(answer.split()) < 3:
+            answer = f"The answer to your question is: {answer}"
+
+        # Return the enhanced answer
         return {"answer": answer}
         
     except HTTPException as http_err:
