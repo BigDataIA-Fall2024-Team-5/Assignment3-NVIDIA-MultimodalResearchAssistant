@@ -101,7 +101,7 @@ def clear_cache_directory(cache_dir):
 def process_graph(image_content):
     """Process a graph image and generate a description using NVIDIA API."""
     description = process_graph_deplot(image_content)
-    nvidia_llm = NVIDIA(model_name="meta/llama-3.1-70b-instruct")
+    nvidia_llm = NVIDIA(model_name="nvidia/llama-3.1-nemotron-51b-instruct")
     response = nvidia_llm.complete("Your responsibility is to explain charts. You are an expert in describing the responses of linearized tables into plain English text for LLMs to use. Explain the following linearized table: " + description)
     return response.text
 

@@ -56,7 +56,7 @@ async def generate_summary(request: SummaryRequest):
 
         # Initialize ChatNVIDIA client with the correct API key
         client = ChatNVIDIA(
-            model="meta/llama3-70b-instruct",
+            model="nvidia/llama-3.1-nemotron-51b-instruct",
             api_key=os.getenv("NVIDIA_API_KEY"),
             temperature=0.5,
             top_p=1,
