@@ -178,7 +178,8 @@ def generate_report(API_BASE_URL, pub_id, conversation_history, query_mode):
         payload = {
             "conversation": conversation_history,
             "pdf_id": pub_id,
-            "index_type": index_type
+            "index_type": index_type,
+            "research_notes": st.session_state.get("research_notes", "")  # Include current research notes
         }
         response = requests.post(f"{API_BASE_URL}/rag/generate-report", json=payload)
         if response.status_code == 200:

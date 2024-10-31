@@ -48,6 +48,7 @@ class ReportRequest(BaseModel):
     conversation: list
     pdf_id: str
     index_type: str
+    research_notes: str 
 
 @router.get("/check-index")
 async def check_index(pdf_id: str):
@@ -215,31 +216,16 @@ async def query_index(data: QueryRequest):
             storage_context=storage_context
         )
 
-        # Create a query engine with specified similarity settings and response mode
-        query_engine = index.as_query_engine(
-            similarity_top_k=5,
-            streaming=False,
-            response_mode="tree_summarize"  # This encourages more complete responses
-        )
+        # Create a query engine with specified similarity settings
+        query_engine = index.as_query_engine(similarity_top_k=5, streaming=False)
         
-        # Modify the prompt to encourage a complete sentence answer
-        enhanced_prompt = f"Please provide a complete sentence answer to the following question: {data.question}"
-        
-        # Query the index with the enhanced prompt
-        response = query_engine.query(enhanced_prompt)
+        # Query the index with the provided question
+        response = query_engine.query(data.question)
 
         # Extract the answer text
         answer = getattr(response, "response")
 
-        # Post-process the answer to ensure it's a complete sentence
-        if not answer.endswith(('.', '!', '?')):
-            answer += '.'
-
-        # If the answer doesn't seem to be a complete sentence, prepend context
-        if not answer[0].isupper() or len(answer.split()) < 3:
-            answer = f"The answer to your question is: {answer}"
-
-        # Return the enhanced answer
+        # Return the extracted answer
         return {"answer": answer}
         
     except HTTPException as http_err:
@@ -248,7 +234,7 @@ async def query_index(data: QueryRequest):
     except Exception as e:
         # Handle unexpected exceptions with a generic message
         raise HTTPException(status_code=500, detail=f"Error querying the index: {str(e)}")
-
+    
 @router.post("/generate-report")
 async def generate_report(data: ReportRequest):
     try:
@@ -281,7 +267,7 @@ async def generate_report(data: ReportRequest):
         explanation = getattr(explanation_response, "response")
 
         # Fetch research notes
-        research_notes = fetch_research_notes(data.pdf_id)
+        research_notes = data.research_notes
 
         report = {
             "summary": summary,
@@ -303,9 +289,12 @@ def fetch_research_notes(pdf_id: str):
         s3_client = boto3.client('s3')
         notes_key = f"research_notes/{pdf_id}.txt"
         
+        print(f"Attempting to fetch research notes with key: {notes_key}")  # Debug log
+        
         response = s3_client.get_object(Bucket=bucket_name, Key=notes_key)
         notes_content = response['Body'].read().decode('utf-8')
+        print(f"Fetched research notes: {notes_content[:100]}...")  # Debug log (first 100 chars)
         return notes_content
     except Exception as e:
         print(f"Error fetching research notes: {str(e)}")
-        return ""   
+        return f"Error fetching research notes: {str(e)}"  # Return error message instead of empty string

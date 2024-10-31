@@ -19,9 +19,10 @@ def show_report_page(API_BASE_URL):
 
     st.header("Research Notes")
     if report_data["research_notes"]:
-        st.text_area("Notes", value=report_data["research_notes"], height=200, disabled=True)
+            st.markdown(report_data["research_notes"])
     else:
-        st.info("No research notes available.")
+            st.info("No research notes available.")
+    
 
     st.header("Conversation")
     for message in report_data["conversation"]:
