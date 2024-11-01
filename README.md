@@ -15,8 +15,9 @@
 3. [Project Structure](#project-structure)  
 4. [Installation](#installation)  
 5. [Folder Documentation](#folder-documentation)  
-6. [Usage](#usage)  
-7. [License](#license) 
+6. [Usage](#usage)
+7. [Attestation](#attestation)  
+8. [License](#license) 
 
 **Structural Diagram**:
 ![Structural Diagram](diagrams/overall_project_architecture.png)
@@ -183,6 +184,17 @@ Once the application is up and running, you can access it at `http://localhost:8
    - The Q/A Interface utilizes a Multi-Modal RAG (Retrieval-Augmented Generation) model powered by NVIDIA, and uses Pinecone as the vector database.
    - You can query the document or the research notes separately, as the research notes are also indexed within Pinecone.
    - Answers from the Q/A interaction can be saved directly into the research notes for that publication.
+
+## Attestation
+
+WE ATTEST THAT WE HAVEN’T USED ANY OTHER STUDENTS’ WORK IN OUR
+ASSIGNMENT AND ABIDE BY THE POLICIES LISTED IN THE STUDENT HANDBOOK
+
+**Contribution**
+
+- **Dharun Karthick Ramaraj**: 33.33%
+- **Nikhil Godalla**: 33.33%
+- **Linata Rajendra Deshmukh**: 33.33%
 
 ### License
 
