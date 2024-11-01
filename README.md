@@ -1,13 +1,13 @@
 # Assignment3-NVIDIA-MultimodalResearchAssistant
 
-- **Code Lab Link: [[CodeLabs](https://codelabs-preview.appspot.com/?file_id=1jgfeDPBayTyQ2fWvncs1wMqrmskJkVCiFLTdYfeTh1k#0)] [[Google Drive Link](https://docs.google.com/document/d/1r1LFc9etDrDeeF5DGEBVaOHluS64qKRh/edit?usp=drive_link&ouid=117337672169848470672&rtpof=true&sd=true)] [[Github Location](docs/Assignment2_OpenAI_Evaluation_App.docx)]**  
-- **Presentation Video Link: [[Google Drive Link](https://drive.google.com/file/d/1FgN-lEHbVfYQ6hQLEsMZnDbP6LPa-EFJ/view?usp=drive_link)] [[Github Location](demo/Assignment%202%20demo.mp4)]**  
-- **FAST API Link: [[FastAPI deployed in EC2 Instance](http://3.145.73.49:8000/)]**  
-- **Streamlit Application Link: [[Streamlit Application deployed in EC2 Instance](http://3.145.73.49:8501/)]**  
-- **Airflow Link: [[Airflow deployed in EC2 Instance](http://3.145.73.49:8080/)]**  
-- **Docker Repository: [[Docker Repository](https://hub.docker.com/repositories/dharunramaraj)]**   
-- **Github Projects: [[Github projects](https://github.com/orgs/BigDataIA-Fall2024-Team-5/projects/4)]**  
+- **Code Lab Link: [[CodeLabs](https://codelabs-preview.appspot.com/?file_id=1yPHSd9AvPMqDpVAzoLdXcD8Y4LPhNvtJBoKSAP7lyfs#0)] [[Google Drive Link](https://docs.google.com/document/d/1yPHSd9AvPMqDpVAzoLdXcD8Y4LPhNvtJBoKSAP7lyfs/edit?usp=sharing)] [[Github Location](/documentation/Assignment%203-NVIDIA%20Multimodal%20Research%20Assistant%20%20.pdf)]**  
+- **Presentation Video Link: [[Google Drive Link](https://drive.google.com/file/d/14n5CKEYc0czH-BZvy5KXZ5TIotqs_TjK/view?usp=sharing)] [[Github Location](/presentation/Assignment3_Demo_Presentation.mp4)]**  
 
+- **FAST API Link: [[FastAPI deployed in GCP Instance](http://34.148.55.30:8000/)]**  
+- **Streamlit Application Link: [[Streamlit Application deployed in GCP Instance](http://34.148.55.30:8501/)]**  
+
+- **Docker Repository: [[Docker Repository](https://hub.docker.com/repositories/linatad)]**   
+- **Github Projects: [[Github projects](https://github.com/orgs/BigDataIA-Fall2024-Team-5/projects/6/)]**  
 
 ## Table of Contents
 1. [Introduction](#introduction) 
@@ -16,7 +16,16 @@
 4. [Installation](#installation)  
 5. [Folder Documentation](#folder-documentation)  
 6. [Usage](#usage)  
-7. [License](#license)  
+7. [License](#license) 
+
+**Structural Diagram**:
+![Structural Diagram](diagrams/overall_project_architecture.png)
+
+**User Flow Diagram**:
+![User Flow Diagram](diagrams/user_flow_overview.png)
+
+**Backend Workflow Diagram**:
+![User Flow Diagram](diagrams/backend_workflow_overview.png) 
 
 ## Introduction
 The **Assignment3-NVIDIA-MultimodalResearchAssistant** project is designed to facilitate document exploration, summarization, and question-answering using state-of-the-art AI models. It leverages multi-modal retrieval-augmented generation (RAG) techniques using NVIDIA’s large language models, integrated with a robust data pipeline and document management system. The core of this project revolves around automating the ingestion, processing, and querying of research documents from the CFA Institute Research Foundation Publications. With a streamlined frontend powered by Streamlit and a backend built with FastAPI, users can seamlessly explore documents, generate concise summaries, and interact with the data through an intelligent Q/A interface.
